@@ -37,6 +37,7 @@ class Kernel:
             LoadUserMiddleware,
             VerifyCsrfToken,
         ],
+        "api": [],
         "auth": [AuthenticationMiddleware],
         "throttle": [ThrottleRequestsMiddleware],
     }
@@ -89,15 +90,22 @@ class Kernel:
         )
 
     def register_routes(self):
-        Route.set_controller_locations(self.application.make("controllers.location"))
+        Route.set_controller_locations(
+            self.application.make("controllers.location")
+        )
 
         self.application.bind("routes.location", "routes/web")
         self.application.make("router").add(
             Route.group(
-                load(self.application.make("routes.location"), "ROUTES", []),
+                load(
+                    self.application.make("routes.location"),
+                    "ROUTES",
+                    []
+                ),
                 middleware=["web"],
             )
         )
+
         self.application.bind("routes.api.location", "routes/api")
 
     def register_templates(self):
