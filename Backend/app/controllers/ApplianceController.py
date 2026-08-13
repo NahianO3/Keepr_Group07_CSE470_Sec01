@@ -81,18 +81,7 @@ class ApplianceController(Controller):
         return {
             "success": True,
             "message": "Appliance created successfully.",
-            "data": {
-                "id": appliance.id,
-                "customer_id": appliance.customer_id,
-                "category": appliance.category,
-                "name": appliance.name,
-                "purchase_date": appliance.purchase_date,
-                "warranty_expiry": appliance.warranty_expiry,
-                "maintenance_interval": appliance.maintenance_interval,
-                "condition": appliance.condition,
-                "created_at": appliance.created_at,
-                "updated_at": appliance.updated_at,
-            },
+            "data": appliance,
         }, 201
 
     def update(self, request: Request):
