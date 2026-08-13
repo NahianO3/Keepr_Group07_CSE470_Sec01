@@ -23,7 +23,7 @@ class MaintenanceScheduleController(Controller):
 
         return {
             "success": True,
-            "data": schedules,
+            "data": list(schedules),
         }
 
     def show(self, request: Request):

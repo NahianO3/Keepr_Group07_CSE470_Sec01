@@ -25,7 +25,7 @@ class MaintenanceRecordController(Controller):
 
         return {
             "success": True,
-            "data": records,
+            "data": list(records),
         }
 
     def show(self, request: Request):

@@ -51,7 +51,7 @@ class ApplianceController(Controller):
         return {
             "success": True,
             "message": "Appliance created successfully.",
-            "data": appliance,
+            "data": list(appliance),
         }, 201
 
     def update(self, request: Request):
