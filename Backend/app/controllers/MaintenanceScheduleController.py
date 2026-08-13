@@ -9,8 +9,34 @@ from app.models.Appliance import Appliance
 
 class MaintenanceScheduleController(Controller):
 
+    def schedule_to_dict(self, schedule):
+        """Convert a maintenance schedule model to JSON-safe data."""
+        return {
+            "id": schedule.id,
+            "appliance_id": schedule.appliance_id,
+            "next_service_date": (
+                schedule.next_service_date.isoformat()
+                if schedule.next_service_date
+                else None
+            ),
+            "next_service_mileage": schedule.next_service_mileage,
+            "interval_days": schedule.interval_days,
+            "reminder_enabled": schedule.reminder_enabled,
+            "created_at": (
+                schedule.created_at.isoformat()
+                if schedule.created_at
+                else None
+            ),
+            "updated_at": (
+                schedule.updated_at.isoformat()
+                if schedule.updated_at
+                else None
+            ),
+        }
+
     def index(self, request: Request):
-        """Return maintenance schedules."""
+        """Return all maintenance schedules."""
+
         appliance_id = request.input("appliance_id")
 
         if appliance_id:
@@ -21,13 +47,19 @@ class MaintenanceScheduleController(Controller):
         else:
             schedules = MaintenanceSchedule.all()
 
+        data = [
+            self.schedule_to_dict(schedule)
+            for schedule in schedules
+        ]
+
         return {
             "success": True,
-            "data": list(schedules),
+            "data": data,
         }
 
     def show(self, request: Request):
         """Return one maintenance schedule."""
+
         schedule_id = request.param("id")
 
         schedule = MaintenanceSchedule.find(schedule_id)
@@ -35,12 +67,12 @@ class MaintenanceScheduleController(Controller):
         if not schedule:
             return {
                 "success": False,
-                "message": "Maintenance schedule not found."
+                "message": "Maintenance schedule not found.",
             }, 404
 
         return {
             "success": True,
-            "data": schedule,
+            "data": self.schedule_to_dict(schedule),
         }
 
     def store(self, request: Request):
@@ -53,7 +85,7 @@ class MaintenanceScheduleController(Controller):
         if not appliance:
             return {
                 "success": False,
-                "message": "Appliance not found."
+                "message": "Appliance not found.",
             }, 404
 
         next_service_date = request.input("next_service_date")
@@ -67,7 +99,7 @@ class MaintenanceScheduleController(Controller):
                 "message": (
                     "next_service_date and interval_days "
                     "are required."
-                )
+                ),
             }, 400
 
         schedule = MaintenanceSchedule.create({
@@ -81,7 +113,7 @@ class MaintenanceScheduleController(Controller):
         return {
             "success": True,
             "message": "Maintenance schedule created successfully.",
-            "data": schedule,
+            "data": self.schedule_to_dict(schedule),
         }, 201
 
     def update(self, request: Request):
@@ -94,7 +126,7 @@ class MaintenanceScheduleController(Controller):
         if not schedule:
             return {
                 "success": False,
-                "message": "Maintenance schedule not found."
+                "message": "Maintenance schedule not found.",
             }, 404
 
         schedule.next_service_date = request.input(
@@ -122,7 +154,7 @@ class MaintenanceScheduleController(Controller):
         return {
             "success": True,
             "message": "Maintenance schedule updated successfully.",
-            "data": schedule,
+            "data": self.schedule_to_dict(schedule),
         }
 
     def destroy(self, request: Request):
@@ -135,7 +167,7 @@ class MaintenanceScheduleController(Controller):
         if not schedule:
             return {
                 "success": False,
-                "message": "Maintenance schedule not found."
+                "message": "Maintenance schedule not found.",
             }, 404
 
         schedule.delete()
