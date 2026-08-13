@@ -8,26 +8,45 @@ from app.models.Appliance import Appliance
 
 class ApplianceController(Controller):
 
+    def appliance_to_dict(self, appliance):
+        """Convert an appliance model to JSON-safe data."""
+        return {
+            "id": appliance.id,
+            "customer_id": appliance.customer_id,
+            "category": appliance.category,
+            "name": appliance.name,
+            "purchase_date": (
+                appliance.purchase_date.isoformat()
+                if appliance.purchase_date
+                else None
+            ),
+            "warranty_expiry": (
+                appliance.warranty_expiry.isoformat()
+                if appliance.warranty_expiry
+                else None
+            ),
+            "maintenance_interval": appliance.maintenance_interval,
+            "condition": appliance.condition,
+            "created_at": (
+                appliance.created_at.isoformat()
+                if appliance.created_at
+                else None
+            ),
+            "updated_at": (
+                appliance.updated_at.isoformat()
+                if appliance.updated_at
+                else None
+            ),
+        }
+
     def index(self, request: Request):
         """Return all appliances."""
-
         appliances = Appliance.all()
 
-        data = []
-
-        for appliance in appliances:
-            data.append({
-                "id": appliance.id,
-                "customer_id": appliance.customer_id,
-                "category": appliance.category,
-                "name": appliance.name,
-                "purchase_date": appliance.purchase_date,
-                "warranty_expiry": appliance.warranty_expiry,
-                "maintenance_interval": appliance.maintenance_interval,
-                "condition": appliance.condition,
-                "created_at": appliance.created_at,
-                "updated_at": appliance.updated_at,
-            })
+        data = [
+            self.appliance_to_dict(appliance)
+            for appliance in appliances
+        ]
 
         return {
             "success": True,
@@ -36,7 +55,6 @@ class ApplianceController(Controller):
 
     def show(self, request: Request):
         """Return one appliance by ID."""
-
         appliance_id = request.param("id")
 
         appliance = Appliance.find(appliance_id)
@@ -49,23 +67,11 @@ class ApplianceController(Controller):
 
         return {
             "success": True,
-            "data": {
-                "id": appliance.id,
-                "customer_id": appliance.customer_id,
-                "category": appliance.category,
-                "name": appliance.name,
-                "purchase_date": appliance.purchase_date,
-                "warranty_expiry": appliance.warranty_expiry,
-                "maintenance_interval": appliance.maintenance_interval,
-                "condition": appliance.condition,
-                "created_at": appliance.created_at,
-                "updated_at": appliance.updated_at,
-            },
+            "data": self.appliance_to_dict(appliance),
         }
 
     def store(self, request: Request):
         """Create a new appliance."""
-
         data = {
             "customer_id": request.input("customer_id"),
             "category": request.input("category"),
@@ -81,23 +87,11 @@ class ApplianceController(Controller):
         return {
             "success": True,
             "message": "Appliance created successfully.",
-            "data": {
-                "id": appliance.id,
-                "customer_id": appliance.customer_id,
-                "category": appliance.category,
-                "name": appliance.name,
-                "purchase_date": appliance.purchase_date,
-                "warranty_expiry": appliance.warranty_expiry,
-                "maintenance_interval": appliance.maintenance_interval,
-                "condition": appliance.condition,
-                "created_at": appliance.created_at,
-                "updated_at": appliance.updated_at,
-            },
+            "data": self.appliance_to_dict(appliance),
         }, 201
 
     def update(self, request: Request):
         """Update an existing appliance."""
-
         appliance_id = request.param("id")
 
         appliance = Appliance.find(appliance_id)
@@ -112,32 +106,26 @@ class ApplianceController(Controller):
             "customer_id",
             appliance.customer_id
         )
-
         appliance.category = request.input(
             "category",
             appliance.category
         )
-
         appliance.name = request.input(
             "name",
             appliance.name
         )
-
         appliance.purchase_date = request.input(
             "purchase_date",
             appliance.purchase_date
         )
-
         appliance.warranty_expiry = request.input(
             "warranty_expiry",
             appliance.warranty_expiry
         )
-
         appliance.maintenance_interval = request.input(
             "maintenance_interval",
             appliance.maintenance_interval
         )
-
         appliance.condition = request.input(
             "condition",
             appliance.condition
@@ -148,23 +136,11 @@ class ApplianceController(Controller):
         return {
             "success": True,
             "message": "Appliance updated successfully.",
-            "data": {
-                "id": appliance.id,
-                "customer_id": appliance.customer_id,
-                "category": appliance.category,
-                "name": appliance.name,
-                "purchase_date": appliance.purchase_date,
-                "warranty_expiry": appliance.warranty_expiry,
-                "maintenance_interval": appliance.maintenance_interval,
-                "condition": appliance.condition,
-                "created_at": appliance.created_at,
-                "updated_at": appliance.updated_at,
-            },
+            "data": self.appliance_to_dict(appliance),
         }
 
     def destroy(self, request: Request):
         """Delete an appliance."""
-
         appliance_id = request.param("id")
 
         appliance = Appliance.find(appliance_id)
