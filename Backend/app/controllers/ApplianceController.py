@@ -14,7 +14,7 @@ class ApplianceController(Controller):
 
         return {
             "success": True,
-            "data": appliances,
+            "data": list(appliances),
         }
 
     def show(self, request: Request):
