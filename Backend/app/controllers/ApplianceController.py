@@ -8,17 +8,35 @@ from app.models.Appliance import Appliance
 
 class ApplianceController(Controller):
 
-    def index(self):
+    def index(self, request: Request):
         """Return all appliances."""
+
         appliances = Appliance.all()
+
+        data = []
+
+        for appliance in appliances:
+            data.append({
+                "id": appliance.id,
+                "customer_id": appliance.customer_id,
+                "category": appliance.category,
+                "name": appliance.name,
+                "purchase_date": appliance.purchase_date,
+                "warranty_expiry": appliance.warranty_expiry,
+                "maintenance_interval": appliance.maintenance_interval,
+                "condition": appliance.condition,
+                "created_at": appliance.created_at,
+                "updated_at": appliance.updated_at,
+            })
 
         return {
             "success": True,
-            "data": appliances,
+            "data": data,
         }
 
     def show(self, request: Request):
         """Return one appliance by ID."""
+
         appliance_id = request.param("id")
 
         appliance = Appliance.find(appliance_id)
@@ -26,16 +44,28 @@ class ApplianceController(Controller):
         if not appliance:
             return {
                 "success": False,
-                "message": "Appliance not found."
+                "message": "Appliance not found.",
             }, 404
 
         return {
             "success": True,
-            "data": appliance,
+            "data": {
+                "id": appliance.id,
+                "customer_id": appliance.customer_id,
+                "category": appliance.category,
+                "name": appliance.name,
+                "purchase_date": appliance.purchase_date,
+                "warranty_expiry": appliance.warranty_expiry,
+                "maintenance_interval": appliance.maintenance_interval,
+                "condition": appliance.condition,
+                "created_at": appliance.created_at,
+                "updated_at": appliance.updated_at,
+            },
         }
 
     def store(self, request: Request):
         """Create a new appliance."""
+
         data = {
             "customer_id": request.input("customer_id"),
             "category": request.input("category"),
@@ -51,11 +81,23 @@ class ApplianceController(Controller):
         return {
             "success": True,
             "message": "Appliance created successfully.",
-            "data": list(appliance),
+            "data": {
+                "id": appliance.id,
+                "customer_id": appliance.customer_id,
+                "category": appliance.category,
+                "name": appliance.name,
+                "purchase_date": appliance.purchase_date,
+                "warranty_expiry": appliance.warranty_expiry,
+                "maintenance_interval": appliance.maintenance_interval,
+                "condition": appliance.condition,
+                "created_at": appliance.created_at,
+                "updated_at": appliance.updated_at,
+            },
         }, 201
 
     def update(self, request: Request):
         """Update an existing appliance."""
+
         appliance_id = request.param("id")
 
         appliance = Appliance.find(appliance_id)
@@ -63,33 +105,39 @@ class ApplianceController(Controller):
         if not appliance:
             return {
                 "success": False,
-                "message": "Appliance not found."
+                "message": "Appliance not found.",
             }, 404
 
         appliance.customer_id = request.input(
             "customer_id",
             appliance.customer_id
         )
+
         appliance.category = request.input(
             "category",
             appliance.category
         )
+
         appliance.name = request.input(
             "name",
             appliance.name
         )
+
         appliance.purchase_date = request.input(
             "purchase_date",
             appliance.purchase_date
         )
+
         appliance.warranty_expiry = request.input(
             "warranty_expiry",
             appliance.warranty_expiry
         )
+
         appliance.maintenance_interval = request.input(
             "maintenance_interval",
             appliance.maintenance_interval
         )
+
         appliance.condition = request.input(
             "condition",
             appliance.condition
@@ -100,11 +148,23 @@ class ApplianceController(Controller):
         return {
             "success": True,
             "message": "Appliance updated successfully.",
-            "data": appliance,
+            "data": {
+                "id": appliance.id,
+                "customer_id": appliance.customer_id,
+                "category": appliance.category,
+                "name": appliance.name,
+                "purchase_date": appliance.purchase_date,
+                "warranty_expiry": appliance.warranty_expiry,
+                "maintenance_interval": appliance.maintenance_interval,
+                "condition": appliance.condition,
+                "created_at": appliance.created_at,
+                "updated_at": appliance.updated_at,
+            },
         }
 
     def destroy(self, request: Request):
         """Delete an appliance."""
+
         appliance_id = request.param("id")
 
         appliance = Appliance.find(appliance_id)
@@ -112,7 +172,7 @@ class ApplianceController(Controller):
         if not appliance:
             return {
                 "success": False,
-                "message": "Appliance not found."
+                "message": "Appliance not found.",
             }, 404
 
         appliance.delete()
