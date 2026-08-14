@@ -1,7 +1,7 @@
 from masonite.controllers import Controller
 from masonite.request import Request
 from masonite.facades import Hash
-
+from masonite.facades import Hash
 from app.models.User import User
 
 
@@ -67,3 +67,34 @@ class UserController(Controller):
                 "account_status": user.account_status,
             }
         }, 201
+    def login(self, request: Request):
+        email = request.input("email")
+        password = request.input("password")
+
+        user = User.where("email", email).first()
+
+        if not user:
+            return {
+                "success": False,
+                "message": "Invalid email or password.",
+            }, 401
+
+        if not Hash.check(password, user.password):
+            return {
+                "success": False,
+                "message": "Invalid email or password.",
+            }, 401
+
+        # Token generation will be added after we verify
+        # the API authentication driver available in this project.
+
+        return {
+            "success": True,
+            "message": "Login credentials are valid.",
+            "data": {
+                "id": user.id,
+                "full_name": user.full_name,
+                "email": user.email,
+                "role": user.role,
+            },
+        }

@@ -7,12 +7,14 @@ middleware group when the ApiProvider is enabled in config/providers.py.
 from masonite.routes import Route
 
 
+
 ROUTES = [
     # User
     Route.post("/register", "UserController@register"),
 
     # Appliance
     Route.get("/appliances", "ApplianceController@index"),
+    Route.get("/appliances/warranty-due", "ApplianceController@warranty_due"),
     Route.get("/appliances/@id", "ApplianceController@show"),
     Route.post("/appliances", "ApplianceController@store"),
     Route.put("/appliances/@id", "ApplianceController@update"),
@@ -48,6 +50,10 @@ ROUTES = [
     Route.get(
         "/maintenance-records",
         "MaintenanceRecordController@index"
+    ),
+    Route.post(
+        "/maintenance-records/@id/complete",
+        "MaintenanceRecordController@complete"
     ),
     Route.get(
         "/maintenance-records/@id",
