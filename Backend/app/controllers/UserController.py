@@ -1,7 +1,7 @@
 from masonite.controllers import Controller
 from masonite.request import Request
 from masonite.facades import Hash
-from masonite.facades import Hash
+
 from app.models.User import User
 
 
@@ -17,31 +17,27 @@ class UserController(Controller):
         address = request.input("address")
         role = request.input("role")
 
-        # Registration is allowed only for these two account types.
-        # Administrator accounts are not self-registered.
+        # Administrators cannot self-register.
         if role not in ["customer", "service_provider"]:
             return {
                 "success": False,
-                "message": "Invalid account type."
+                "message": "Invalid account type.",
             }, 400
 
-        # Basic required-field check.
         if not full_name or not email or not password:
             return {
                 "success": False,
-                "message": "Full name, email and password are required."
+                "message": "Full name, email and password are required.",
             }, 400
 
-        # Prevent duplicate email addresses.
         existing_user = User.where("email", email).first()
 
         if existing_user:
             return {
                 "success": False,
-                "message": "An account with this email already exists."
+                "message": "An account with this email already exists.",
             }, 409
 
-        # Password is hashed before being stored.
         hashed_password = Hash.make(password)
 
         user = User.create({
@@ -65,9 +61,17 @@ class UserController(Controller):
                 "address": user.address,
                 "role": user.role,
                 "account_status": user.account_status,
-            }
+            },
         }, 201
+
     def login(self, request: Request):
+        """
+        Credential check helper.
+
+        The actual /api/auth JWT login is handled by Masonite's
+        AuthenticationController.
+        """
+
         email = request.input("email")
         password = request.input("password")
 
@@ -85,8 +89,11 @@ class UserController(Controller):
                 "message": "Invalid email or password.",
             }, 401
 
-        # Token generation will be added after we verify
-        # the API authentication driver available in this project.
+        if user.account_status == "suspended":
+            return {
+                "success": False,
+                "message": "Your account has been suspended.",
+            }, 403
 
         return {
             "success": True,
@@ -96,5 +103,6 @@ class UserController(Controller):
                 "full_name": user.full_name,
                 "email": user.email,
                 "role": user.role,
+                "account_status": user.account_status,
             },
         }
