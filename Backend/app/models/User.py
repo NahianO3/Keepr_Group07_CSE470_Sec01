@@ -1,12 +1,12 @@
 """User Model."""
-from masonite.api.facades import Api
+import jwt
+from masonite.environment import env
 from masoniteorm.models import Model
 from masonite.authentication import Authenticates
-from masonite.api.authentication import AuthenticatesTokens
 from masonite.authorization import Authorizes
 
 
-class User(Model, Authenticates, AuthenticatesTokens, Authorizes):
+class User(Model, Authenticates, Authorizes):
 
     __fillable__ = [
         "full_name",
@@ -24,4 +24,14 @@ class User(Model, Authenticates, AuthenticatesTokens, Authorizes):
 
     __auth__ = "email"
     def generate_jwt(self):
-        return Api.generate_token()
+        payload = {
+            "user_id": self.id,
+            "email": self.email,
+            "role": self.role,
+        }
+
+        return jwt.encode(
+            payload,
+            env("JWT_SECRET"),
+            algorithm="HS512"
+        )

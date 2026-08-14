@@ -12,7 +12,6 @@ class CreateUsersTable(Migration):
             table.string("full_name")
             table.string("email").unique()
             table.string("password")
-            table.string("api_token").nullable()
             table.string("remember_token").nullable()
 
             table.string("phone").nullable()
