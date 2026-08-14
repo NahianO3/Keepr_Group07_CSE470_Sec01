@@ -46,18 +46,74 @@ class MaintenanceScheduleController(Controller):
             "updated_at": updated_at,
         }
 
+    def customer_owns_appliance(self, request, appliance):
+        """Check whether the logged-in customer owns the appliance."""
+
+        customer = request.user()
+
+        if not customer:
+            return False
+
+        return appliance.customer_id == customer.id
+
+    def customer_owns_schedule(self, request, schedule):
+        """Check whether the logged-in customer owns the schedule."""
+
+        appliance = Appliance.find(schedule.appliance_id)
+
+        if not appliance:
+            return False
+
+        return self.customer_owns_appliance(request, appliance)
+
     def index(self, request: Request):
-        """Return maintenance schedules."""
+        """Return maintenance schedules belonging to the logged-in customer."""
+
+        customer = request.user()
 
         appliance_id = request.input("appliance_id")
 
         if appliance_id:
+            appliance = Appliance.find(appliance_id)
+
+            if not appliance:
+                return {
+                    "success": False,
+                    "message": "Appliance not found.",
+                }, 404
+
+            if not self.customer_owns_appliance(request, appliance):
+                return {
+                    "success": False,
+                    "message": (
+                        "You do not have permission to access "
+                        "this appliance."
+                    ),
+                }, 403
+
             schedules = MaintenanceSchedule.where(
                 "appliance_id",
                 appliance_id
             ).get()
+
         else:
-            schedules = MaintenanceSchedule.all()
+            customer_appliances = Appliance.where(
+                "customer_id",
+                customer.id
+            ).get()
+
+            owned_appliance_ids = {
+                appliance.id
+                for appliance in customer_appliances
+            }
+
+            all_schedules = MaintenanceSchedule.all()
+
+            schedules = [
+                schedule
+                for schedule in all_schedules
+                if schedule.appliance_id in owned_appliance_ids
+            ]
 
         data = [
             self.schedule_to_dict(schedule)
@@ -70,7 +126,7 @@ class MaintenanceScheduleController(Controller):
         }
 
     def show(self, request: Request):
-        """Return one maintenance schedule."""
+        """Return one maintenance schedule belonging to the customer."""
 
         schedule_id = request.param("id")
 
@@ -82,13 +138,22 @@ class MaintenanceScheduleController(Controller):
                 "message": "Maintenance schedule not found.",
             }, 404
 
+        if not self.customer_owns_schedule(request, schedule):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to access "
+                    "this maintenance schedule."
+                ),
+            }, 403
+
         return {
             "success": True,
             "data": self.schedule_to_dict(schedule),
         }
 
     def store(self, request: Request):
-        """Create a maintenance schedule."""
+        """Create a maintenance schedule for the customer's appliance."""
 
         appliance_id = request.input("appliance_id")
 
@@ -99,6 +164,15 @@ class MaintenanceScheduleController(Controller):
                 "success": False,
                 "message": "Appliance not found.",
             }, 404
+
+        if not self.customer_owns_appliance(request, appliance):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to create "
+                    "a schedule for this appliance."
+                ),
+            }, 403
 
         next_service_date = request.input("next_service_date")
         next_service_mileage = request.input("next_service_mileage")
@@ -125,8 +199,6 @@ class MaintenanceScheduleController(Controller):
                 ),
             }, 400
 
-        # Empty string cannot be stored in a PostgreSQL
-        # double precision column. Treat it as NULL.
         if next_service_mileage == "":
             next_service_mileage = None
         elif next_service_mileage is not None:
@@ -159,9 +231,52 @@ class MaintenanceScheduleController(Controller):
             "message": "Maintenance schedule created successfully.",
             "data": self.schedule_to_dict(schedule),
         }, 201
+    def due(self, request: Request):
+        """Return maintenance schedules that are due or overdue."""
 
+        customer = request.user()
+
+        customer_appliances = Appliance.where(
+            "customer_id",
+            customer.id
+        ).get()
+
+        owned_appliance_ids = {
+            appliance.id
+            for appliance in customer_appliances
+        }
+
+        all_schedules = MaintenanceSchedule.all()
+
+        today = date.today()
+
+        due_schedules = []
+
+        for schedule in all_schedules:
+            if schedule.appliance_id not in owned_appliance_ids:
+                continue
+
+            next_service_date = schedule.next_service_date
+
+            if isinstance(next_service_date, str):
+                try:
+                    next_service_date = date.fromisoformat(
+                        next_service_date
+                    )
+                except (ValueError, TypeError):
+                    continue
+
+            if next_service_date and next_service_date <= today:
+                due_schedules.append(
+                    self.schedule_to_dict(schedule)
+                )
+
+        return {
+            "success": True,
+            "data": due_schedules,
+        }
     def update(self, request: Request):
-        """Update a maintenance schedule."""
+        """Update a maintenance schedule belonging to the customer."""
 
         schedule_id = request.param("id")
 
@@ -172,6 +287,15 @@ class MaintenanceScheduleController(Controller):
                 "success": False,
                 "message": "Maintenance schedule not found.",
             }, 404
+
+        if not self.customer_owns_schedule(request, schedule):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to update "
+                    "this maintenance schedule."
+                ),
+            }, 403
 
         next_service_date = request.input(
             "next_service_date",
@@ -197,7 +321,6 @@ class MaintenanceScheduleController(Controller):
             schedule.next_service_mileage
         )
 
-        # Treat an empty mileage field as NULL.
         if next_service_mileage == "":
             next_service_mileage = None
         elif next_service_mileage is not None:
@@ -240,7 +363,7 @@ class MaintenanceScheduleController(Controller):
         }
 
     def destroy(self, request: Request):
-        """Delete a maintenance schedule."""
+        """Delete a maintenance schedule belonging to the customer."""
 
         schedule_id = request.param("id")
 
@@ -251,6 +374,15 @@ class MaintenanceScheduleController(Controller):
                 "success": False,
                 "message": "Maintenance schedule not found.",
             }, 404
+
+        if not self.customer_owns_schedule(request, schedule):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to delete "
+                    "this maintenance schedule."
+                ),
+            }, 403
 
         schedule.delete()
 

@@ -1,17 +1,38 @@
 """API routes.
 
-Routes defined here are registered under the "/api" prefix with the "api"
-middleware group when the ApiProvider is enabled in config/providers.py.
+Routes defined here are registered under the "/api" prefix.
 """
 
 from masonite.routes import Route
 
 
 ROUTES = [
+
+    # =========================
     # User
+    # =========================
+
     Route.post(
         "/register",
-        "UserController@register"
+        "UserController@register",
+    ),
+
+    # Authentication
+
+
+    Route.post(
+        "/logout",
+        "AuthenticationController@logout",
+    ),
+
+    Route.post(
+        "/password-reset/request",
+        "AuthenticationController@password_reset_request",
+    ),
+
+    Route.post(
+        "/password-reset/confirm",
+        "AuthenticationController@password_reset_confirm",
     ),
 
     # =========================
@@ -20,32 +41,32 @@ ROUTES = [
 
     Route.get(
         "/appliances",
-        "ApplianceController@index"
+        "ApplianceController@index",
     ).middleware("api_auth", "role:customer"),
 
     Route.get(
         "/appliances/warranty-due",
-        "ApplianceController@warranty_due"
+        "ApplianceController@warranty_due",
     ).middleware("api_auth", "role:customer"),
 
     Route.get(
         "/appliances/@id",
-        "ApplianceController@show"
+        "ApplianceController@show",
     ).middleware("api_auth", "role:customer"),
 
     Route.post(
         "/appliances",
-        "ApplianceController@store"
+        "ApplianceController@store",
     ).middleware("api_auth", "role:customer"),
 
     Route.put(
         "/appliances/@id",
-        "ApplianceController@update"
+        "ApplianceController@update",
     ).middleware("api_auth", "role:customer"),
 
     Route.delete(
         "/appliances/@id",
-        "ApplianceController@destroy"
+        "ApplianceController@destroy",
     ).middleware("api_auth", "role:customer"),
 
     # =========================
@@ -54,32 +75,32 @@ ROUTES = [
 
     Route.get(
         "/maintenance-schedules",
-        "MaintenanceScheduleController@index"
+        "MaintenanceScheduleController@index",
     ).middleware("api_auth", "role:customer"),
 
     Route.get(
         "/maintenance-schedules/due",
-        "MaintenanceScheduleController@due"
+        "MaintenanceScheduleController@due",
     ).middleware("api_auth", "role:customer"),
 
     Route.get(
         "/maintenance-schedules/@id",
-        "MaintenanceScheduleController@show"
+        "MaintenanceScheduleController@show",
     ).middleware("api_auth", "role:customer"),
 
     Route.post(
         "/maintenance-schedules",
-        "MaintenanceScheduleController@store"
+        "MaintenanceScheduleController@store",
     ).middleware("api_auth", "role:customer"),
 
     Route.put(
         "/maintenance-schedules/@id",
-        "MaintenanceScheduleController@update"
+        "MaintenanceScheduleController@update",
     ).middleware("api_auth", "role:customer"),
 
     Route.delete(
         "/maintenance-schedules/@id",
-        "MaintenanceScheduleController@destroy"
+        "MaintenanceScheduleController@destroy",
     ).middleware("api_auth", "role:customer"),
 
     # =========================
@@ -88,27 +109,27 @@ ROUTES = [
 
     Route.get(
         "/maintenance-records",
-        "MaintenanceRecordController@index"
+        "MaintenanceRecordController@index",
     ).middleware("api_auth", "role:customer"),
 
     Route.get(
         "/maintenance-records/@id",
-        "MaintenanceRecordController@show"
+        "MaintenanceRecordController@show",
     ).middleware("api_auth", "role:customer"),
 
     Route.post(
         "/maintenance-records",
-        "MaintenanceRecordController@store"
+        "MaintenanceRecordController@store",
     ).middleware("api_auth", "role:customer"),
 
     Route.put(
         "/maintenance-records/@id",
-        "MaintenanceRecordController@update"
+        "MaintenanceRecordController@update",
     ).middleware("api_auth", "role:customer"),
 
     Route.delete(
         "/maintenance-records/@id",
-        "MaintenanceRecordController@destroy"
+        "MaintenanceRecordController@destroy",
     ).middleware("api_auth", "role:customer"),
 
     # =========================
@@ -117,31 +138,55 @@ ROUTES = [
 
     Route.get(
         "/maintenance-requests",
-        "MaintenanceRecordController@provider_requests"
+        "MaintenanceRecordController@provider_requests",
     ).middleware("api_auth", "role:service_provider"),
 
     Route.post(
         "/maintenance-records/@id/accept",
-        "MaintenanceRecordController@accept"
+        "MaintenanceRecordController@accept",
     ).middleware("api_auth", "role:service_provider"),
 
     Route.post(
         "/maintenance-records/@id/reject",
-        "MaintenanceRecordController@reject"
+        "MaintenanceRecordController@reject",
     ).middleware("api_auth", "role:service_provider"),
 
     Route.put(
         "/maintenance-records/@id/reschedule",
-        "MaintenanceRecordController@reschedule"
+        "MaintenanceRecordController@reschedule",
     ).middleware("api_auth", "role:service_provider"),
 
     Route.put(
         "/maintenance-records/@id/progress",
-        "MaintenanceRecordController@update_progress"
+        "MaintenanceRecordController@update_progress",
     ).middleware("api_auth", "role:service_provider"),
 
     Route.post(
         "/maintenance-records/@id/complete",
-        "MaintenanceRecordController@complete"
+        "MaintenanceRecordController@complete",
     ).middleware("api_auth", "role:service_provider"),
+
+    # =========================
+    # Administrator
+    # =========================
+
+    Route.get(
+        "/admin/users",
+        "AdminController@users",
+    ).middleware("api_auth", "role:admin"),
+
+    Route.put(
+        "/admin/users/@id/status",
+        "AdminController@update_user_status",
+    ).middleware("api_auth", "role:admin"),
+
+    Route.put(
+        "/admin/providers/@id/approve",
+        "AdminController@approve_provider",
+    ).middleware("api_auth", "role:admin"),
+
+    Route.get(
+        "/admin/maintenance-records",
+        "AdminController@maintenance_records",
+    ).middleware("api_auth", "role:admin"),
 ]

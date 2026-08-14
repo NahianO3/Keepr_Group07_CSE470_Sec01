@@ -60,18 +60,69 @@ class MaintenanceRecordController(Controller):
 
         return record.service_provider_id == provider.id
 
+    def customer_owns_record(self, request, record):
+        """Check whether the logged-in customer owns the record."""
+
+        customer = request.user()
+
+        if not customer:
+            return False
+
+        appliance = Appliance.find(record.appliance_id)
+
+        if not appliance:
+            return False
+
+        return appliance.customer_id == customer.id
+
     def index(self, request: Request):
-        """Return maintenance records."""
+        """Return maintenance records belonging to the logged-in customer."""
+
+        customer = request.user()
 
         appliance_id = request.input("appliance_id")
 
         if appliance_id:
+            appliance = Appliance.find(appliance_id)
+
+            if not appliance:
+                return {
+                    "success": False,
+                    "message": "Appliance not found.",
+                }, 404
+
+            if not self.customer_owns_appliance(request, appliance):
+                return {
+                    "success": False,
+                    "message": (
+                        "You do not have permission to access "
+                        "this appliance."
+                    ),
+                }, 403
+
             records = MaintenanceRecord.where(
                 "appliance_id",
                 appliance_id
             ).get()
+
         else:
-            records = MaintenanceRecord.all()
+            customer_appliances = Appliance.where(
+                "customer_id",
+                customer.id
+            ).get()
+
+            owned_appliance_ids = {
+                appliance.id
+                for appliance in customer_appliances
+            }
+
+            all_records = MaintenanceRecord.all()
+
+            records = [
+                record
+                for record in all_records
+                if record.appliance_id in owned_appliance_ids
+            ]
 
         data = [
             self.record_to_dict(record)
@@ -84,7 +135,7 @@ class MaintenanceRecordController(Controller):
         }
 
     def show(self, request: Request):
-        """Return one maintenance record."""
+        """Return one maintenance record belonging to the customer."""
 
         record_id = request.param("id")
 
@@ -96,13 +147,22 @@ class MaintenanceRecordController(Controller):
                 "message": "Maintenance record not found.",
             }, 404
 
+        if not self.customer_owns_record(request, record):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to access "
+                    "this maintenance record."
+                ),
+            }, 403
+
         return {
             "success": True,
             "data": self.record_to_dict(record),
         }
 
     def store(self, request: Request):
-        """Create a maintenance record."""
+        """Create a maintenance record for the customer's appliance."""
 
         appliance_id = request.input("appliance_id")
         service_provider_id = request.input("service_provider_id")
@@ -114,6 +174,15 @@ class MaintenanceRecordController(Controller):
                 "success": False,
                 "message": "Appliance not found.",
             }, 404
+
+        if not self.customer_owns_appliance(request, appliance):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to create "
+                    "a maintenance record for this appliance."
+                ),
+            }, 403
 
         service_provider = User.find(service_provider_id)
 
@@ -466,7 +535,7 @@ class MaintenanceRecordController(Controller):
         }
 
     def update(self, request: Request):
-        """Update a maintenance record."""
+        """Update a maintenance record belonging to the customer."""
 
         record_id = request.param("id")
 
@@ -477,6 +546,15 @@ class MaintenanceRecordController(Controller):
                 "success": False,
                 "message": "Maintenance record not found.",
             }, 404
+
+        if not self.customer_owns_record(request, record):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to update "
+                    "this maintenance record."
+                ),
+            }, 403
 
         maintenance_date = request.input("maintenance_date")
 
@@ -540,7 +618,7 @@ class MaintenanceRecordController(Controller):
         }
 
     def destroy(self, request: Request):
-        """Delete a maintenance record."""
+        """Delete a maintenance record belonging to the customer."""
 
         record_id = request.param("id")
 
@@ -552,9 +630,28 @@ class MaintenanceRecordController(Controller):
                 "message": "Maintenance record not found.",
             }, 404
 
+        if not self.customer_owns_record(request, record):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to delete "
+                    "this maintenance record."
+                ),
+            }, 403
+
         record.delete()
 
         return {
             "success": True,
             "message": "Maintenance record deleted successfully.",
         }
+
+    def customer_owns_appliance(self, request, appliance):
+        """Check whether the logged-in customer owns the appliance."""
+
+        customer = request.user()
+
+        if not customer:
+            return False
+
+        return appliance.customer_id == customer.id

@@ -20,6 +20,10 @@ class CreateUsersTable(Migration):
             table.string("role")
             table.string("account_status")
 
+            # Password reset
+            table.string("password_reset_token").nullable()
+            table.datetime("password_reset_expires_at").nullable()
+
             table.timestamps()
 
     def down(self):
