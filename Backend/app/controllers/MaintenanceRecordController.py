@@ -50,6 +50,16 @@ class MaintenanceRecordController(Controller):
             "updated_at": updated_at,
         }
 
+    def provider_owns_record(self, request, record):
+        """Check whether the logged-in provider owns the record."""
+
+        provider = request.user()
+
+        if not provider:
+            return False
+
+        return record.service_provider_id == provider.id
+
     def index(self, request: Request):
         """Return maintenance records."""
 
@@ -136,7 +146,7 @@ class MaintenanceRecordController(Controller):
 
         try:
             maintenance_date = date.fromisoformat(maintenance_date)
-        except ValueError:
+        except (ValueError, TypeError):
             return {
                 "success": False,
                 "message": (
@@ -145,6 +155,17 @@ class MaintenanceRecordController(Controller):
                 ),
             }, 400
 
+        if cost == "":
+            cost = None
+        elif cost is not None:
+            try:
+                cost = float(cost)
+            except (ValueError, TypeError):
+                return {
+                    "success": False,
+                    "message": "Invalid cost.",
+                }, 400
+
         record = MaintenanceRecord.create({
             "appliance_id": appliance_id,
             "service_provider_id": service_provider_id,
@@ -152,7 +173,7 @@ class MaintenanceRecordController(Controller):
             "maintenance_type": maintenance_type,
             "work_performed": work_performed,
             "cost": cost,
-            "status": status,
+            "status": status or "Pending",
         })
 
         return {
@@ -160,6 +181,227 @@ class MaintenanceRecordController(Controller):
             "message": "Maintenance record created successfully.",
             "data": self.record_to_dict(record),
         }, 201
+
+    def provider_requests(self, request: Request):
+        """Return maintenance requests assigned to the logged-in provider."""
+
+        provider = request.user()
+
+        if not provider:
+            return {
+                "success": False,
+                "message": "Authentication required.",
+            }, 401
+
+        records = MaintenanceRecord.where(
+            "service_provider_id",
+            provider.id
+        ).get()
+
+        data = [
+            self.record_to_dict(record)
+            for record in records
+        ]
+
+        return {
+            "success": True,
+            "data": data,
+        }
+
+    def accept(self, request: Request):
+        """Accept a maintenance request."""
+
+        record_id = request.param("id")
+        record = MaintenanceRecord.find(record_id)
+
+        if not record:
+            return {
+                "success": False,
+                "message": "Maintenance record not found.",
+            }, 404
+
+        if not self.provider_owns_record(request, record):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to manage "
+                    "this maintenance request."
+                ),
+            }, 403
+
+        if record.status not in ["Pending", "Rejected"]:
+            return {
+                "success": False,
+                "message": "This maintenance request cannot be accepted.",
+            }, 409
+
+        record.status = "Accepted"
+        record.save()
+
+        return {
+            "success": True,
+            "message": "Maintenance request accepted successfully.",
+            "data": self.record_to_dict(record),
+        }
+
+    def reject(self, request: Request):
+        """Reject a maintenance request."""
+
+        record_id = request.param("id")
+        record = MaintenanceRecord.find(record_id)
+
+        if not record:
+            return {
+                "success": False,
+                "message": "Maintenance record not found.",
+            }, 404
+
+        if not self.provider_owns_record(request, record):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to manage "
+                    "this maintenance request."
+                ),
+            }, 403
+
+        if record.status in ["Completed", "Rejected"]:
+            return {
+                "success": False,
+                "message": "This maintenance request cannot be rejected.",
+            }, 409
+
+        record.status = "Rejected"
+        record.save()
+
+        return {
+            "success": True,
+            "message": "Maintenance request rejected successfully.",
+            "data": self.record_to_dict(record),
+        }
+
+    def reschedule(self, request: Request):
+        """Reschedule a maintenance request."""
+
+        record_id = request.param("id")
+        record = MaintenanceRecord.find(record_id)
+
+        if not record:
+            return {
+                "success": False,
+                "message": "Maintenance record not found.",
+            }, 404
+
+        if not self.provider_owns_record(request, record):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to manage "
+                    "this maintenance request."
+                ),
+            }, 403
+
+        new_date = request.input("maintenance_date")
+
+        if not new_date:
+            return {
+                "success": False,
+                "message": "maintenance_date is required.",
+            }, 400
+
+        try:
+            new_date = date.fromisoformat(new_date)
+        except (ValueError, TypeError):
+            return {
+                "success": False,
+                "message": (
+                    "Invalid maintenance_date format. "
+                    "Use YYYY-MM-DD."
+                ),
+            }, 400
+
+        if record.status == "Completed":
+            return {
+                "success": False,
+                "message": "Completed maintenance cannot be rescheduled.",
+            }, 409
+
+        record.maintenance_date = new_date
+        record.status = "Rescheduled"
+        record.save()
+
+        return {
+            "success": True,
+            "message": "Maintenance request rescheduled successfully.",
+            "data": self.record_to_dict(record),
+        }
+
+    def update_progress(self, request: Request):
+        """Update maintenance progress/status."""
+
+        record_id = request.param("id")
+        record = MaintenanceRecord.find(record_id)
+
+        if not record:
+            return {
+                "success": False,
+                "message": "Maintenance record not found.",
+            }, 404
+
+        if not self.provider_owns_record(request, record):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to manage "
+                    "this maintenance request."
+                ),
+            }, 403
+
+        status = request.input("status")
+
+        work_performed = request.input(
+            "work_performed",
+            record.work_performed
+        )
+
+        if not status:
+            return {
+                "success": False,
+                "message": "status is required.",
+            }, 400
+
+        allowed_statuses = [
+            "Accepted",
+            "In Progress",
+            "Rescheduled",
+            "Completed",
+            "Rejected",
+        ]
+
+        if status not in allowed_statuses:
+            return {
+                "success": False,
+                "message": (
+                    "Invalid status. Use one of: "
+                    + ", ".join(allowed_statuses)
+                ),
+            }, 400
+
+        if record.status == "Completed":
+            return {
+                "success": False,
+                "message": "Completed maintenance cannot be updated.",
+            }, 409
+
+        record.status = status
+        record.work_performed = work_performed
+        record.save()
+
+        return {
+            "success": True,
+            "message": "Maintenance progress updated successfully.",
+            "data": self.record_to_dict(record),
+        }
 
     def complete(self, request: Request):
         """Complete maintenance and calculate the next service date."""
@@ -174,6 +416,15 @@ class MaintenanceRecordController(Controller):
                 "message": "Maintenance record not found.",
             }, 404
 
+        if not self.provider_owns_record(request, record):
+            return {
+                "success": False,
+                "message": (
+                    "You do not have permission to manage "
+                    "this maintenance request."
+                ),
+            }, 403
+
         if record.status == "Completed":
             return {
                 "success": False,
@@ -185,7 +436,7 @@ class MaintenanceRecordController(Controller):
         if isinstance(maintenance_date, str):
             try:
                 maintenance_date = date.fromisoformat(maintenance_date)
-            except ValueError:
+            except (ValueError, TypeError):
                 return {
                     "success": False,
                     "message": "Invalid maintenance date.",
@@ -234,7 +485,7 @@ class MaintenanceRecordController(Controller):
                 maintenance_date = date.fromisoformat(
                     maintenance_date
                 )
-            except ValueError:
+            except (ValueError, TypeError):
                 return {
                     "success": False,
                     "message": (
@@ -244,6 +495,22 @@ class MaintenanceRecordController(Controller):
                 }, 400
         else:
             maintenance_date = record.maintenance_date
+
+        cost = request.input(
+            "cost",
+            record.cost
+        )
+
+        if cost == "":
+            cost = None
+        elif cost is not None:
+            try:
+                cost = float(cost)
+            except (ValueError, TypeError):
+                return {
+                    "success": False,
+                    "message": "Invalid cost.",
+                }, 400
 
         record.maintenance_date = maintenance_date
 
@@ -257,10 +524,7 @@ class MaintenanceRecordController(Controller):
             record.work_performed
         )
 
-        record.cost = request.input(
-            "cost",
-            record.cost
-        )
+        record.cost = cost
 
         record.status = request.input(
             "status",
