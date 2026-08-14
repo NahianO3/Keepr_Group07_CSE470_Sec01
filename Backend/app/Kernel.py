@@ -13,6 +13,7 @@ from masonite.middleware import (
     ThrottleRequestsMiddleware,
 )
 from masonite.routes import Route
+from masonite.api import Api
 from masonite.storage import StorageCapsule
 from masonite.utils.location import base_path
 from masonite.utils.structures import load
@@ -107,6 +108,12 @@ class Kernel:
         )
 
         self.application.bind("routes.api.location", "routes/api")
+        self.application.make("router").add(
+            Route.group(
+                Api.routes(),
+                middleware=["api"],
+            )
+        )
 
     def register_templates(self):
         self.application.bind("views.location", "templates")

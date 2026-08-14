@@ -1,4 +1,5 @@
 """API Config"""
+
 from masonite.environment import env
 
 from app.models.User import User
@@ -9,7 +10,7 @@ DRIVERS = {
         "secret": env("JWT_SECRET"),
         "model": User,
         "expires": None,
-        "authenticates": False,
+        "authenticates": True,
         "version": None,
     }
 }
