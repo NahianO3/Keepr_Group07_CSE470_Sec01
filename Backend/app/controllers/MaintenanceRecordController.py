@@ -10,6 +10,33 @@ from app.models.User import User
 
 class MaintenanceRecordController(Controller):
 
+    def record_to_dict(self, record):
+        """Convert a maintenance record model to JSON-safe data."""
+        return {
+            "id": record.id,
+            "appliance_id": record.appliance_id,
+            "service_provider_id": record.service_provider_id,
+            "maintenance_date": (
+                record.maintenance_date.isoformat()
+                if record.maintenance_date
+                else None
+            ),
+            "maintenance_type": record.maintenance_type,
+            "work_performed": record.work_performed,
+            "cost": record.cost,
+            "status": record.status,
+            "created_at": (
+                record.created_at.isoformat()
+                if record.created_at
+                else None
+            ),
+            "updated_at": (
+                record.updated_at.isoformat()
+                if record.updated_at
+                else None
+            ),
+        }
+
     def index(self, request: Request):
         """Return maintenance records."""
 
@@ -23,9 +50,14 @@ class MaintenanceRecordController(Controller):
         else:
             records = MaintenanceRecord.all()
 
+        data = [
+            self.record_to_dict(record)
+            for record in records
+        ]
+
         return {
             "success": True,
-            "data": list(records),
+            "data": data,
         }
 
     def show(self, request: Request):
@@ -38,12 +70,12 @@ class MaintenanceRecordController(Controller):
         if not record:
             return {
                 "success": False,
-                "message": "Maintenance record not found."
+                "message": "Maintenance record not found.",
             }, 404
 
         return {
             "success": True,
-            "data": record,
+            "data": self.record_to_dict(record),
         }
 
     def store(self, request: Request):
@@ -57,7 +89,7 @@ class MaintenanceRecordController(Controller):
         if not appliance:
             return {
                 "success": False,
-                "message": "Appliance not found."
+                "message": "Appliance not found.",
             }, 404
 
         service_provider = User.find(service_provider_id)
@@ -65,15 +97,13 @@ class MaintenanceRecordController(Controller):
         if not service_provider:
             return {
                 "success": False,
-                "message": "Service provider not found."
+                "message": "Service provider not found.",
             }, 404
 
         if service_provider.role != "service_provider":
             return {
                 "success": False,
-                "message": (
-                    "Selected user is not a service provider."
-                )
+                "message": "Selected user is not a service provider.",
             }, 400
 
         maintenance_date = request.input("maintenance_date")
@@ -88,7 +118,7 @@ class MaintenanceRecordController(Controller):
                 "message": (
                     "maintenance_date and maintenance_type "
                     "are required."
-                )
+                ),
             }, 400
 
         record = MaintenanceRecord.create({
@@ -104,7 +134,7 @@ class MaintenanceRecordController(Controller):
         return {
             "success": True,
             "message": "Maintenance record created successfully.",
-            "data": record,
+            "data": self.record_to_dict(record),
         }, 201
 
     def update(self, request: Request):
@@ -117,7 +147,7 @@ class MaintenanceRecordController(Controller):
         if not record:
             return {
                 "success": False,
-                "message": "Maintenance record not found."
+                "message": "Maintenance record not found.",
             }, 404
 
         record.maintenance_date = request.input(
@@ -150,7 +180,7 @@ class MaintenanceRecordController(Controller):
         return {
             "success": True,
             "message": "Maintenance record updated successfully.",
-            "data": record,
+            "data": self.record_to_dict(record),
         }
 
     def destroy(self, request: Request):
@@ -163,7 +193,7 @@ class MaintenanceRecordController(Controller):
         if not record:
             return {
                 "success": False,
-                "message": "Maintenance record not found."
+                "message": "Maintenance record not found.",
             }, 404
 
         record.delete()

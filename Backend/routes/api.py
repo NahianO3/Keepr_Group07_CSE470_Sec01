@@ -24,6 +24,10 @@ ROUTES = [
         "MaintenanceScheduleController@index"
     ),
     Route.get(
+        "/maintenance-schedules/due",
+        "MaintenanceScheduleController@due"
+    ),
+    Route.get(
         "/maintenance-schedules/@id",
         "MaintenanceScheduleController@show"
     ),
