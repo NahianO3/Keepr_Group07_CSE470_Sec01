@@ -1,13 +1,24 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+
 import api from "../services/api";
 
-const AuthContext = createContext(null);
+const AuthContext =
+  createContext(null);
 
 function decodeToken(token) {
   try {
-    const payload = token.split(".")[1];
+    const payload =
+      token.split(".")[1];
+
     const decoded = atob(
-      payload.replace(/-/g, "+").replace(/_/g, "/")
+      payload
+        .replace(/-/g, "+")
+        .replace(/_/g, "/")
     );
 
     return JSON.parse(decoded);
@@ -20,27 +31,39 @@ async function resolveRole() {
   const checks = [
     {
       role: "admin",
-      request: () => api.get("/admin/users"),
+      request: () =>
+        api.get("/admin/users"),
     },
-    {
-      role: "customer",
-      request: () => api.get("/appliances"),
-    },
+
     {
       role: "service_provider",
-      request: () => api.get("/maintenance-requests"),
+      request: () =>
+        api.get(
+          "/maintenance-requests"
+        ),
+    },
+
+    {
+      role: "customer",
+      request: () =>
+        api.get("/appliances"),
     },
   ];
 
   for (const check of checks) {
     try {
       await check.request();
+
       return check.role;
     } catch (error) {
-      if (error.response?.status !== 403) {
-        if (error.response?.status === 401) {
-          continue;
-        }
+      const status =
+        error.response?.status;
+
+      if (
+        status === 401 ||
+        status === 403
+      ) {
+        continue;
       }
     }
   }
@@ -48,115 +71,203 @@ async function resolveRole() {
   return null;
 }
 
-export function AuthProvider({ children }) {
-  const [token, setToken] = useState(
-    () => localStorage.getItem("keepr_token")
+function clearStoredAuth() {
+  localStorage.removeItem(
+    "keepr_token"
   );
 
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("keepr_user");
+  localStorage.removeItem(
+    "keepr_user"
+  );
 
-    try {
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  localStorage.removeItem(
+    "keepr_role"
+  );
+}
 
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({
+  children,
+}) {
+  const [token, setToken] =
+    useState(() =>
+      localStorage.getItem(
+        "keepr_token"
+      )
+    );
 
-  useEffect(() => {
-    const restoreSession = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+  const [user, setUser] =
+    useState(() => {
+      const saved =
+        localStorage.getItem(
+          "keepr_user"
+        );
 
       try {
-        const payload = decodeToken(token);
+        return saved
+          ? JSON.parse(saved)
+          : null;
+      } catch {
+        return null;
+      }
+    });
 
-        const restoredUser = {
-          id: payload.user_id || null,
-          email: payload.email || null,
-          role: localStorage.getItem("keepr_role"),
-        };
+  const [loading, setLoading] =
+    useState(true);
 
-        if (!restoredUser.role) {
-          restoredUser.role = await resolveRole();
+  useEffect(() => {
+    const restoreSession =
+      async () => {
+        if (!token) {
+          setLoading(false);
+          return;
         }
 
-        setUser(restoredUser);
-        localStorage.setItem(
-          "keepr_user",
-          JSON.stringify(restoredUser)
-        );
-      } catch {
-        logoutLocal();
-      } finally {
-        setLoading(false);
-      }
-    };
+        try {
+          const payload =
+            decodeToken(token);
+
+          const storedRole =
+            localStorage.getItem(
+              "keepr_role"
+            );
+
+          let role =
+            storedRole || null;
+
+          if (!role) {
+            role =
+              await resolveRole();
+          }
+
+          if (!role) {
+            throw new Error(
+              "Unable to determine user role."
+            );
+          }
+
+          const restoredUser = {
+            id:
+              payload.user_id || null,
+            email:
+              payload.email || null,
+            role,
+          };
+
+          setUser(restoredUser);
+
+          localStorage.setItem(
+            "keepr_user",
+            JSON.stringify(
+              restoredUser
+            )
+          );
+
+          localStorage.setItem(
+            "keepr_role",
+            role
+          );
+        } catch {
+          clearStoredAuth();
+
+          setToken(null);
+          setUser(null);
+        } finally {
+          setLoading(false);
+        }
+      };
 
     restoreSession();
   }, [token]);
 
-  const login = async (email, password) => {
-    const response = await api.post("/auth", {
-      username: email,
-      password,
-    });
+  const login = async (
+    email,
+    password
+  ) => {
+    const response =
+      await api.post("/auth", {
+        username: email,
+        password,
+      });
 
-    const newToken = response.data?.data;
+    const newToken =
+      response.data?.data;
 
     if (!newToken) {
-      throw new Error("Login succeeded but no token was returned.");
+      throw new Error(
+        "Login succeeded but no token was returned."
+      );
     }
 
-    localStorage.setItem("keepr_token", newToken);
+    localStorage.setItem(
+      "keepr_token",
+      newToken
+    );
+
     setToken(newToken);
 
-    const payload = decodeToken(newToken);
+    const payload =
+      decodeToken(newToken);
 
-    const resolvedRole = await resolveRole();
+    const resolvedRole =
+      await resolveRole();
+
+    if (!resolvedRole) {
+      clearStoredAuth();
+
+      setToken(null);
+
+      throw new Error(
+        "Unable to determine your account role."
+      );
+    }
 
     const loggedInUser = {
-      id: payload.user_id || null,
+      id:
+        payload.user_id || null,
       email,
       role: resolvedRole,
     };
 
     localStorage.setItem(
       "keepr_user",
-      JSON.stringify(loggedInUser)
+      JSON.stringify(
+        loggedInUser
+      )
     );
 
-    localStorage.setItem("keepr_role", resolvedRole || "");
+    localStorage.setItem(
+      "keepr_role",
+      resolvedRole
+    );
 
     setUser(loggedInUser);
 
     return loggedInUser;
   };
 
-  const register = async (userData) => {
-    const response = await api.post("/register", userData);
+  const register = async (
+    userData
+  ) => {
+    const response =
+      await api.post(
+        "/register",
+        userData
+      );
+
     return response.data;
   };
 
   const logout = async () => {
     try {
       await api.post("/logout");
+    } catch {
+      // Local logout still happens.
     } finally {
-      logoutLocal();
+      clearStoredAuth();
+
+      setToken(null);
+      setUser(null);
     }
-  };
-
-  const logoutLocal = () => {
-    localStorage.removeItem("keepr_token");
-    localStorage.removeItem("keepr_user");
-    localStorage.removeItem("keepr_role");
-
-    setToken(null);
-    setUser(null);
   };
 
   return (
@@ -168,7 +279,8 @@ export function AuthProvider({ children }) {
         login,
         register,
         logout,
-        isAuthenticated: Boolean(token),
+        isAuthenticated:
+          Boolean(token),
       }}
     >
       {children}
@@ -177,10 +289,13 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context =
+    useContext(AuthContext);
 
   if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider.");
+    throw new Error(
+      "useAuth must be used inside AuthProvider."
+    );
   }
 
   return context;

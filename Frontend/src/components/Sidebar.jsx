@@ -5,26 +5,26 @@ import {
   Bell,
   LogOut,
   Settings,
+  CalendarClock,
+  ClipboardList,
+  UserCircle,
+  Users,
+  UserCheck,
+  ShieldCheck,
+  ClipboardCheck,
 } from "lucide-react";
 
 import {
   NavLink,
+  useLocation,
   useNavigate,
 } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
-
 import KeeprLogo from "./KeeprLogo";
 
-export default function Sidebar() {
-  const navigate = useNavigate();
-
-  const {
-    logout,
-    user,
-  } = useAuth();
-
-  const links = [
+const menus = {
+  customer: [
     {
       to: "/dashboard",
       label: "Dashboard",
@@ -36,8 +36,13 @@ export default function Sidebar() {
       icon: Refrigerator,
     },
     {
-      to: "/maintenance",
-      label: "Maintenance",
+      to: "/maintenance-schedules",
+      label: "Schedules",
+      icon: CalendarClock,
+    },
+    {
+      to: "/maintenance-history",
+      label: "History",
       icon: Wrench,
     },
     {
@@ -45,16 +50,104 @@ export default function Sidebar() {
       label: "Reminders",
       icon: Bell,
     },
-  ];
+  ],
+
+  service_provider: [
+    {
+      to: "/provider",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      to: "/provider/requests",
+      label: "Requests",
+      icon: ClipboardList,
+    },
+    {
+      to: "/provider/profile",
+      label: "My Profile",
+      icon: UserCircle,
+    },
+  ],
+
+  admin: [
+    {
+      to: "/admin",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      to: "/admin/users",
+      label: "Users",
+      icon: Users,
+    },
+    {
+      to: "/admin/providers",
+      label: "Providers",
+      icon: UserCheck,
+    },
+    {
+      to: "/admin/provider-approval",
+      label: "Provider Approval",
+      icon: ShieldCheck,
+    },
+    {
+      to: "/admin/maintenance-records",
+      label: "Maintenance",
+      icon: ClipboardCheck,
+    },
+  ],
+};
+
+export default function Sidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const {
+    logout,
+    user,
+  } = useAuth();
+
+  const role =
+    user?.role || "customer";
+
+  const links =
+    menus[role] || menus.customer;
 
   const handleLogout = async () => {
     await logout();
     navigate("/login");
   };
 
+  const isActive = (link) => {
+    if (link.to === "/dashboard") {
+      return location.pathname === "/dashboard";
+    }
+
+    if (link.to === "/provider") {
+      return location.pathname === "/provider";
+    }
+
+    if (link.to === "/admin") {
+      return location.pathname === "/admin";
+    }
+
+    return (
+      location.pathname === link.to ||
+      location.pathname.startsWith(
+        `${link.to}/`
+      )
+    );
+  };
+
+  const roleLabel = {
+    customer: "Customer",
+    service_provider: "Service Provider",
+    admin: "Administrator",
+  }[role];
+
   return (
     <aside className="sidebar">
-
       {/* BRAND */}
 
       <div className="sidebar-brand">
@@ -64,7 +157,6 @@ export default function Sidebar() {
       {/* NAVIGATION */}
 
       <nav className="sidebar-nav">
-
         <div className="sidebar-section-label">
           MENU
         </div>
@@ -76,12 +168,10 @@ export default function Sidebar() {
             <NavLink
               key={link.to}
               to={link.to}
-              className={({ isActive }) =>
-                `sidebar-link ${
-                  isActive
-                    ? "sidebar-link-active"
-                    : ""
-                }`
+              className={
+                isActive(link)
+                  ? "sidebar-link sidebar-link-active"
+                  : "sidebar-link"
               }
             >
               <Icon size={19} />
@@ -92,13 +182,11 @@ export default function Sidebar() {
             </NavLink>
           );
         })}
-
       </nav>
 
       {/* ACCOUNT */}
 
       <div className="sidebar-bottom">
-
         <div className="sidebar-section-label">
           ACCOUNT
         </div>
@@ -129,7 +217,6 @@ export default function Sidebar() {
         {/* USER */}
 
         <div className="sidebar-user">
-
           <div className="sidebar-avatar">
             {user?.email
               ?.charAt(0)
@@ -137,21 +224,17 @@ export default function Sidebar() {
           </div>
 
           <div>
-
             <strong>
-              {user?.email || "Customer"}
+              {user?.email ||
+                "User"}
             </strong>
 
             <span>
-              Customer
+              {roleLabel}
             </span>
-
           </div>
-
         </div>
-
       </div>
-
     </aside>
   );
 }

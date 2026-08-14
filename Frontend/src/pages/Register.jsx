@@ -1,26 +1,39 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ShieldCheck } from "lucide-react";
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
+
 import { useAuth } from "../context/AuthContext";
+import KeeprLogo from "../components/KeeprLogo";
 
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
-  const [form, setForm] = useState({
-    full_name: "",
-    email: "",
-    password: "",
-    phone: "",
-    address: "",
-    role: "customer",
-  });
+  const [form, setForm] =
+    useState({
+      full_name: "",
+      email: "",
+      password: "",
+      phone: "",
+      address: "",
+      role: "customer",
+    });
 
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError] =
+    useState("");
 
-  const updateField = (event) => {
-    const { name, value } = event.target;
+  const [loading, setLoading] =
+    useState(false);
+
+  const updateField = (
+    event
+  ) => {
+    const {
+      name,
+      value,
+    } = event.target;
 
     setForm((current) => ({
       ...current,
@@ -28,12 +41,22 @@ export default function Register() {
     }));
   };
 
-  const submit = async (event) => {
+  const submit = async (
+    event
+  ) => {
     event.preventDefault();
+
     setError("");
 
-    if (!form.full_name || !form.email || !form.password) {
-      setError("Please complete the required fields.");
+    if (
+      !form.full_name ||
+      !form.email ||
+      !form.password
+    ) {
+      setError(
+        "Please complete the required fields."
+      );
+
       return;
     }
 
@@ -49,7 +72,8 @@ export default function Register() {
       });
     } catch (err) {
       setError(
-        err.response?.data?.message ||
+        err.response?.data
+          ?.message ||
           "Unable to create account."
       );
     } finally {
@@ -61,105 +85,171 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-panel register-panel">
         <div className="auth-brand">
-          <div className="brand-icon">
-            <ShieldCheck size={22} />
-          </div>
-          <span>Keepr</span>
+          <KeeprLogo width={150} />
         </div>
 
         <div className="auth-content">
-          <span className="eyebrow">GET STARTED</span>
-          <h1>Create your Keepr account.</h1>
+          <span className="eyebrow">
+            GET STARTED
+          </span>
+
+          <h1>
+            Create your Keepr account.
+          </h1>
+
           <p>
-            Start managing your maintenance in one simple place.
+            Start managing your maintenance
+            in one simple place.
           </p>
 
-          <form onSubmit={submit} className="auth-form register-form">
+          <form
+            onSubmit={submit}
+            className="auth-form register-form"
+          >
             <div className="two-column">
               <div>
-                <label>Full name</label>
+                <label>
+                  Full name
+                </label>
+
                 <input
                   name="full_name"
                   placeholder="Your name"
                   value={form.full_name}
-                  onChange={updateField}
+                  onChange={
+                    updateField
+                  }
+                  autoComplete="name"
                 />
               </div>
 
               <div>
-                <label>Phone</label>
+                <label>
+                  Phone
+                </label>
+
                 <input
                   name="phone"
                   placeholder="01XXXXXXXXX"
                   value={form.phone}
-                  onChange={updateField}
+                  onChange={
+                    updateField
+                  }
+                  autoComplete="tel"
                 />
               </div>
             </div>
 
-            <label>Email</label>
+            <label>
+              Email
+            </label>
+
             <input
               type="email"
               name="email"
               placeholder="you@example.com"
               value={form.email}
-              onChange={updateField}
+              onChange={
+                updateField
+              }
+              autoComplete="email"
             />
 
-            <label>Password</label>
+            <label>
+              Password
+            </label>
+
             <input
               type="password"
               name="password"
               placeholder="Create a password"
               value={form.password}
-              onChange={updateField}
+              onChange={
+                updateField
+              }
+              autoComplete="new-password"
             />
 
-            <label>Address</label>
+            <label>
+              Address
+            </label>
+
             <textarea
               name="address"
               placeholder="Your address"
               value={form.address}
-              onChange={updateField}
+              onChange={
+                updateField
+              }
               rows="3"
             />
 
-            <label>Account type</label>
+            <label>
+              Account type
+            </label>
+
             <select
               name="role"
               value={form.role}
-              onChange={updateField}
+              onChange={
+                updateField
+              }
             >
-              <option value="customer">Customer</option>
+              <option value="customer">
+                Customer
+              </option>
+
               <option value="service_provider">
                 Service Provider
               </option>
             </select>
 
-            {error && <div className="form-error">{error}</div>}
+            <p className="form-note">
+              Administrator accounts are managed
+              by the system and cannot be created
+              through public registration.
+            </p>
+
+            {error && (
+              <div className="form-error">
+                {error}
+              </div>
+            )}
 
             <button
               className="primary-button"
               type="submit"
               disabled={loading}
             >
-              {loading ? "Creating..." : "Create account"}
+              {loading
+                ? "Creating..."
+                : "Create account"}
             </button>
           </form>
 
           <p className="auth-footer">
             Already have an account?{" "}
-            <Link to="/login">Sign in</Link>
+            <Link to="/login">
+              Sign in
+            </Link>
           </p>
         </div>
       </div>
 
       <div className="auth-visual register-visual">
         <div className="visual-overlay">
-          <span>KEEP IT TOGETHER.</span>
-          <h2>Your maintenance deserves a better home.</h2>
+          <span>
+            KEEP IT TOGETHER.
+          </span>
+
+          <h2>
+            Your maintenance deserves
+            a better home.
+          </h2>
+
           <p>
-            Track what matters and never lose your service history.
+            Track what matters and never
+            lose your service history.
           </p>
         </div>
       </div>
