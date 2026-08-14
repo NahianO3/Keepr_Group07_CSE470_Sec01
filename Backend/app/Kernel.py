@@ -19,6 +19,7 @@ from masonite.utils.location import base_path
 from masonite.utils.structures import load
 
 from app.middlewares.AuthenticationMiddleware import AuthenticationMiddleware
+from app.middlewares.RoleMiddleware import RoleMiddleware
 from app.middlewares.VerifyCsrfToken import VerifyCsrfToken
 
 
@@ -40,6 +41,7 @@ class Kernel:
         ],
         "api": [],
         "auth": [AuthenticationMiddleware],
+        "role": [RoleMiddleware],
         "throttle": [ThrottleRequestsMiddleware],
     }
 

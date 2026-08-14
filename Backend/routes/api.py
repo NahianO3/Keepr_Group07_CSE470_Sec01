@@ -13,12 +13,35 @@ ROUTES = [
     Route.post("/register", "UserController@register"),
 
     # Appliance
-    Route.get("/appliances", "ApplianceController@index"),
-    Route.get("/appliances/warranty-due", "ApplianceController@warranty_due"),
-    Route.get("/appliances/@id", "ApplianceController@show"),
-    Route.post("/appliances", "ApplianceController@store"),
-    Route.put("/appliances/@id", "ApplianceController@update"),
-    Route.delete("/appliances/@id", "ApplianceController@destroy"),
+    Route.get(
+        "/appliances",
+        "ApplianceController@index"
+    ).middleware("role:customer"),
+
+    Route.get(
+        "/appliances/warranty-due",
+        "ApplianceController@warranty_due"
+    ).middleware("role:customer"),
+
+    Route.get(
+        "/appliances/@id",
+        "ApplianceController@show"
+    ).middleware("role:customer"),
+
+    Route.post(
+        "/appliances",
+        "ApplianceController@store"
+    ).middleware("role:customer"),
+
+    Route.put(
+        "/appliances/@id",
+        "ApplianceController@update"
+    ).middleware("role:customer"),
+
+    Route.delete(
+        "/appliances/@id",
+        "ApplianceController@destroy"
+    ).middleware("role:customer"),
 
     # Maintenance schedules
     Route.get(

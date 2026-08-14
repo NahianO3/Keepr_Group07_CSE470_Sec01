@@ -3,7 +3,7 @@ from masonite.middleware import Middleware
 
 class RoleMiddleware(Middleware):
 
-    def before(self, request, response):
+    def before(self, request, response, role):
         user = request.user()
 
         if not user:
@@ -15,9 +15,7 @@ class RoleMiddleware(Middleware):
                 status=401
             )
 
-        required_role = request.route.params.get("role")
-
-        if required_role and user.role != required_role:
+        if user.role != role:
             return response.json(
                 {
                     "success": False,
@@ -28,5 +26,5 @@ class RoleMiddleware(Middleware):
 
         return request
 
-    def after(self, request, response):
+    def after(self, request, response, role):
         return request
