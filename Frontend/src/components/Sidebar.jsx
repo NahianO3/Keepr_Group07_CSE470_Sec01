@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Refrigerator,
+  Car,
   Wrench,
   Bell,
   LogOut,
@@ -34,6 +35,11 @@ const menus = {
       to: "/appliances",
       label: "My Appliances",
       icon: Refrigerator,
+    },
+    {
+      to: "/vehicles",
+      label: "My Vehicles",
+      icon: Car,
     },
     {
       to: "/maintenance-schedules",

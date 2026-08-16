@@ -7,55 +7,55 @@ from masonite.request import Request
 
 from app.models.MaintenanceSchedule import MaintenanceSchedule
 from app.models.Appliance import Appliance
+from app.models.Vehicle import Vehicle
 
 
 class MaintenanceScheduleController(Controller):
 
     # =========================================================
-    # HELPERS
+    # SERIALIZATION
     # =========================================================
 
     def schedule_to_dict(self, schedule):
-        """Convert maintenance schedule to JSON-safe data."""
+        """Convert schedule to JSON-safe data."""
 
-        next_service_date = schedule.next_service_date
+        def to_iso(value):
+            if not value:
+                return value
 
-        if next_service_date:
-            if hasattr(next_service_date, "isoformat"):
-                next_service_date = next_service_date.isoformat()
-            else:
-                next_service_date = str(next_service_date)
-
-        created_at = schedule.created_at
-
-        if created_at:
-            if hasattr(created_at, "isoformat"):
-                created_at = created_at.isoformat()
-            else:
-                created_at = str(created_at)
-
-        updated_at = schedule.updated_at
-
-        if updated_at:
-            if hasattr(updated_at, "isoformat"):
-                updated_at = updated_at.isoformat()
-            else:
-                updated_at = str(updated_at)
+            return (
+                value.isoformat()
+                if hasattr(value, "isoformat")
+                else str(value)
+            )
 
         return {
             "id": schedule.id,
             "appliance_id": schedule.appliance_id,
-            "next_service_date": next_service_date,
-            "next_service_mileage": schedule.next_service_mileage,
+            "vehicle_id": schedule.vehicle_id,
+            "next_service_date": to_iso(
+                schedule.next_service_date
+            ),
+            "next_service_mileage": (
+                schedule.next_service_mileage
+            ),
             "interval_days": schedule.interval_days,
-            "reminder_enabled": schedule.reminder_enabled,
-            "created_at": created_at,
-            "updated_at": updated_at,
+            "reminder_enabled": (
+                schedule.reminder_enabled
+            ),
+            "created_at": to_iso(schedule.created_at),
+            "updated_at": to_iso(schedule.updated_at),
         }
 
-    def customer_owns_appliance(self, request, appliance):
-        """Check whether the logged-in customer owns appliance."""
+    # =========================================================
+    # OWNERSHIP
+    # =========================================================
 
+    def customer_owns_appliance(
+        self,
+        request,
+        appliance
+    ):
         customer = request.user()
 
         if not customer:
@@ -63,25 +63,77 @@ class MaintenanceScheduleController(Controller):
 
         return appliance.customer_id == customer.id
 
-    def customer_owns_schedule(self, request, schedule):
-        """Check whether the logged-in customer owns schedule."""
+    def customer_owns_vehicle(
+        self,
+        request,
+        vehicle
+    ):
+        customer = request.user()
 
-        appliance = Appliance.find(schedule.appliance_id)
-
-        if not appliance:
+        if not customer:
             return False
 
-        return self.customer_owns_appliance(
-            request,
-            appliance
-        )
+        return vehicle.customer_id == customer.id
+
+    def customer_owns_schedule(
+        self,
+        request,
+        schedule
+    ):
+        """A schedule belongs to exactly one asset."""
+
+        if schedule.appliance_id is not None:
+            appliance = Appliance.find(
+                schedule.appliance_id
+            )
+
+            if not appliance:
+                return False
+
+            return self.customer_owns_appliance(
+                request,
+                appliance
+            )
+
+        if schedule.vehicle_id is not None:
+            vehicle = Vehicle.find(
+                schedule.vehicle_id
+            )
+
+            if not vehicle:
+                return False
+
+            return self.customer_owns_vehicle(
+                request,
+                vehicle
+            )
+
+        return False
+
+    def owned_appliance_ids(self, customer):
+        return {
+            appliance.id
+            for appliance in Appliance.where(
+                "customer_id",
+                customer.id
+            ).get()
+        }
+
+    def owned_vehicle_ids(self, customer):
+        return {
+            vehicle.id
+            for vehicle in Vehicle.where(
+                "customer_id",
+                customer.id
+            ).get()
+        }
 
     # =========================================================
-    # GET ALL
+    # INDEX
     # =========================================================
 
     def index(self, request: Request):
-        """Return maintenance schedules for logged-in customer."""
+        """Return schedules belonging to customer."""
 
         customer = request.user()
 
@@ -91,11 +143,19 @@ class MaintenanceScheduleController(Controller):
                 "message": "Authentication required.",
             }, 401
 
-        appliance_id = request.input("appliance_id")
+        appliance_id = request.input(
+            "appliance_id"
+        )
+
+        vehicle_id = request.input(
+            "vehicle_id"
+        )
 
         if appliance_id:
 
-            appliance = Appliance.find(appliance_id)
+            appliance = Appliance.find(
+                appliance_id
+            )
 
             if not appliance:
                 return {
@@ -110,8 +170,8 @@ class MaintenanceScheduleController(Controller):
                 return {
                     "success": False,
                     "message": (
-                        "You do not have permission to access "
-                        "this appliance."
+                        "You do not have permission "
+                        "to access this appliance."
                     ),
                 }, 403
 
@@ -120,24 +180,56 @@ class MaintenanceScheduleController(Controller):
                 appliance_id
             ).get()
 
-        else:
+        elif vehicle_id:
 
-            customer_appliances = Appliance.where(
-                "customer_id",
-                customer.id
+            vehicle = Vehicle.find(
+                vehicle_id
+            )
+
+            if not vehicle:
+                return {
+                    "success": False,
+                    "message": "Vehicle not found.",
+                }, 404
+
+            if not self.customer_owns_vehicle(
+                request,
+                vehicle
+            ):
+                return {
+                    "success": False,
+                    "message": (
+                        "You do not have permission "
+                        "to access this vehicle."
+                    ),
+                }, 403
+
+            schedules = MaintenanceSchedule.where(
+                "vehicle_id",
+                vehicle_id
             ).get()
 
-            owned_appliance_ids = {
-                appliance.id
-                for appliance in customer_appliances
-            }
+        else:
+
+            owned_appliance_ids = (
+                self.owned_appliance_ids(customer)
+            )
+
+            owned_vehicle_ids = (
+                self.owned_vehicle_ids(customer)
+            )
 
             all_schedules = MaintenanceSchedule.all()
 
             schedules = [
                 schedule
                 for schedule in all_schedules
-                if schedule.appliance_id in owned_appliance_ids
+                if (
+                    schedule.appliance_id
+                    in owned_appliance_ids
+                    or schedule.vehicle_id
+                    in owned_vehicle_ids
+                )
             ]
 
         return {
@@ -149,20 +241,24 @@ class MaintenanceScheduleController(Controller):
         }
 
     # =========================================================
-    # GET ONE
+    # SHOW
     # =========================================================
 
     def show(self, request: Request):
-        """Return one customer-owned maintenance schedule."""
+        """Return one customer-owned schedule."""
 
         schedule_id = request.param("id")
 
-        schedule = MaintenanceSchedule.find(schedule_id)
+        schedule = MaintenanceSchedule.find(
+            schedule_id
+        )
 
         if not schedule:
             return {
                 "success": False,
-                "message": "Maintenance schedule not found.",
+                "message": (
+                    "Maintenance schedule not found."
+                ),
             }, 404
 
         if not self.customer_owns_schedule(
@@ -183,39 +279,95 @@ class MaintenanceScheduleController(Controller):
         }
 
     # =========================================================
-    # CREATE / SYNC
+    # CREATE OR UPDATE EXISTING
     # =========================================================
 
     def store(self, request: Request):
         """
-        Create or synchronize an appliance maintenance schedule.
+        Create a schedule if one does not exist.
 
-        If the appliance already has an automatically generated
-        schedule, update that schedule instead of creating a
-        duplicate one.
+        If the asset already has a schedule, update the existing
+        row instead of creating a duplicate.
         """
 
-        appliance_id = request.input("appliance_id")
+        appliance_id = request.input(
+            "appliance_id"
+        )
 
-        appliance = Appliance.find(appliance_id)
+        vehicle_id = request.input(
+            "vehicle_id"
+        )
 
-        if not appliance:
-            return {
-                "success": False,
-                "message": "Appliance not found.",
-            }, 404
-
-        if not self.customer_owns_appliance(
-            request,
-            appliance
-        ):
+        if bool(appliance_id) == bool(vehicle_id):
             return {
                 "success": False,
                 "message": (
-                    "You do not have permission to manage "
-                    "this appliance's schedule."
+                    "Provide either appliance_id or "
+                    "vehicle_id, never both."
                 ),
-            }, 403
+            }, 400
+
+        if appliance_id:
+
+            appliance = Appliance.find(
+                appliance_id
+            )
+
+            if not appliance:
+                return {
+                    "success": False,
+                    "message": "Appliance not found.",
+                }, 404
+
+            if not self.customer_owns_appliance(
+                request,
+                appliance
+            ):
+                return {
+                    "success": False,
+                    "message": (
+                        "You do not have permission to "
+                        "manage this appliance's schedule."
+                    ),
+                }, 403
+
+            existing_schedule = (
+                MaintenanceSchedule.where(
+                    "appliance_id",
+                    appliance_id
+                ).first()
+            )
+
+        else:
+
+            vehicle = Vehicle.find(
+                vehicle_id
+            )
+
+            if not vehicle:
+                return {
+                    "success": False,
+                    "message": "Vehicle not found.",
+                }, 404
+
+            if not self.customer_owns_vehicle(
+                request,
+                vehicle
+            ):
+                return {
+                    "success": False,
+                    "message": (
+                        "You do not have permission to "
+                        "manage this vehicle's schedule."
+                    ),
+                }, 403
+
+            existing_schedule = (
+                MaintenanceSchedule.where(
+                    "vehicle_id",
+                    vehicle_id
+                ).first()
+            )
 
         next_service_date = request.input(
             "next_service_date"
@@ -233,25 +385,21 @@ class MaintenanceScheduleController(Controller):
             "reminder_enabled"
         )
 
-        # -----------------------------------------------------
-        # Required fields
-        # -----------------------------------------------------
-
         if not next_service_date:
             return {
                 "success": False,
-                "message": "next_service_date is required.",
+                "message": (
+                    "next_service_date is required."
+                ),
             }, 400
 
-        if interval_days is None or interval_days == "":
+        if interval_days in (None, ""):
             return {
                 "success": False,
-                "message": "interval_days is required.",
+                "message": (
+                    "interval_days is required."
+                ),
             }, 400
-
-        # -----------------------------------------------------
-        # Date validation
-        # -----------------------------------------------------
 
         try:
             next_service_date = date.fromisoformat(
@@ -266,10 +414,6 @@ class MaintenanceScheduleController(Controller):
                 ),
             }, 400
 
-        # -----------------------------------------------------
-        # Mileage validation
-        # -----------------------------------------------------
-
         if next_service_mileage == "":
             next_service_mileage = None
 
@@ -282,15 +426,24 @@ class MaintenanceScheduleController(Controller):
             except (ValueError, TypeError):
                 return {
                     "success": False,
-                    "message": "Invalid next_service_mileage.",
+                    "message": (
+                        "Invalid next_service_mileage."
+                    ),
                 }, 400
 
-        # -----------------------------------------------------
-        # Interval validation
-        # -----------------------------------------------------
+            if next_service_mileage < 0:
+                return {
+                    "success": False,
+                    "message": (
+                        "next_service_mileage cannot "
+                        "be negative."
+                    ),
+                }, 400
 
         try:
-            interval_days = int(interval_days)
+            interval_days = int(
+                interval_days
+            )
         except (ValueError, TypeError):
             return {
                 "success": False,
@@ -305,42 +458,35 @@ class MaintenanceScheduleController(Controller):
                 ),
             }, 400
 
-        # -----------------------------------------------------
-        # Reminder
-        # -----------------------------------------------------
-
-        if reminder_enabled is None or reminder_enabled == "":
+        if reminder_enabled in (
+            None,
+            ""
+        ):
             reminder_enabled = True
 
         # -----------------------------------------------------
-        # IMPORTANT:
-        # Reuse existing schedule if one exists.
+        # Reuse existing schedule
         # -----------------------------------------------------
 
-        schedule = MaintenanceSchedule.where(
-            "appliance_id",
-            appliance_id
-        ).first()
+        if existing_schedule:
 
-        if schedule:
-
-            schedule.next_service_date = (
+            existing_schedule.next_service_date = (
                 next_service_date
             )
 
-            schedule.next_service_mileage = (
+            existing_schedule.next_service_mileage = (
                 next_service_mileage
             )
 
-            schedule.interval_days = (
+            existing_schedule.interval_days = (
                 interval_days
             )
 
-            schedule.reminder_enabled = (
+            existing_schedule.reminder_enabled = (
                 reminder_enabled
             )
 
-            schedule.save()
+            existing_schedule.save()
 
             return {
                 "success": True,
@@ -349,18 +495,29 @@ class MaintenanceScheduleController(Controller):
                     "successfully."
                 ),
                 "data": self.schedule_to_dict(
-                    schedule
+                    existing_schedule
                 ),
             }
 
         # -----------------------------------------------------
-        # No existing schedule → create one.
+        # Create new schedule
         # -----------------------------------------------------
 
         schedule = MaintenanceSchedule.create({
-            "appliance_id": appliance_id,
+            "appliance_id": (
+                appliance_id
+                if appliance_id
+                else None
+            ),
+            "vehicle_id": (
+                vehicle_id
+                if vehicle_id
+                else None
+            ),
             "next_service_date": next_service_date,
-            "next_service_mileage": next_service_mileage,
+            "next_service_mileage": (
+                next_service_mileage
+            ),
             "interval_days": interval_days,
             "reminder_enabled": reminder_enabled,
         })
@@ -374,11 +531,20 @@ class MaintenanceScheduleController(Controller):
         }, 201
 
     # =========================================================
-    # DUE / OVERDUE
+    # DUE
     # =========================================================
 
     def due(self, request: Request):
-        """Return schedules that are due or overdue."""
+        """
+        Return schedules that are due/overdue.
+
+        Appliance:
+            due when next_service_date has arrived.
+
+        Vehicle:
+            due when either the date OR mileage threshold
+            has been reached.
+        """
 
         customer = request.user()
 
@@ -388,17 +554,29 @@ class MaintenanceScheduleController(Controller):
                 "message": "Authentication required.",
             }, 401
 
-        customer_appliances = Appliance.where(
-            "customer_id",
-            customer.id
-        ).get()
+        owned_appliance_ids = (
+            self.owned_appliance_ids(
+                customer
+            )
+        )
 
-        owned_appliance_ids = {
-            appliance.id
-            for appliance in customer_appliances
+        owned_vehicle_ids = (
+            self.owned_vehicle_ids(
+                customer
+            )
+        )
+
+        vehicles_by_id = {
+            vehicle.id: vehicle
+            for vehicle in Vehicle.where(
+                "customer_id",
+                customer.id
+            ).get()
         }
 
-        all_schedules = MaintenanceSchedule.all()
+        all_schedules = (
+            MaintenanceSchedule.all()
+        )
 
         today = date.today()
 
@@ -406,29 +584,66 @@ class MaintenanceScheduleController(Controller):
 
         for schedule in all_schedules:
 
-            if schedule.appliance_id not in owned_appliance_ids:
+            owns_appliance = (
+                schedule.appliance_id
+                in owned_appliance_ids
+            )
+
+            owns_vehicle = (
+                schedule.vehicle_id
+                in owned_vehicle_ids
+            )
+
+            if not owns_appliance and not owns_vehicle:
                 continue
+
+            is_due = False
 
             next_service_date = (
                 schedule.next_service_date
             )
 
-            if isinstance(next_service_date, str):
-
+            if isinstance(
+                next_service_date,
+                str
+            ):
                 try:
                     next_service_date = (
                         date.fromisoformat(
                             next_service_date
                         )
                     )
-
-                except (ValueError, TypeError):
-                    continue
+                except (
+                    ValueError,
+                    TypeError
+                ):
+                    next_service_date = None
 
             if (
                 next_service_date
                 and next_service_date <= today
             ):
+                is_due = True
+
+            if (
+                owns_vehicle
+                and schedule.next_service_mileage
+                is not None
+            ):
+                vehicle = vehicles_by_id.get(
+                    schedule.vehicle_id
+                )
+
+                if (
+                    vehicle
+                    and vehicle.current_mileage
+                    is not None
+                    and vehicle.current_mileage
+                    >= schedule.next_service_mileage
+                ):
+                    is_due = True
+
+            if is_due:
                 due_schedules.append(
                     self.schedule_to_dict(
                         schedule
@@ -445,7 +660,7 @@ class MaintenanceScheduleController(Controller):
     # =========================================================
 
     def update(self, request: Request):
-        """Update a customer-owned maintenance schedule."""
+        """Update an existing customer-owned schedule."""
 
         schedule_id = request.param("id")
 
@@ -456,7 +671,9 @@ class MaintenanceScheduleController(Controller):
         if not schedule:
             return {
                 "success": False,
-                "message": "Maintenance schedule not found.",
+                "message": (
+                    "Maintenance schedule not found."
+                ),
             }, 404
 
         if not self.customer_owns_schedule(
@@ -476,15 +693,20 @@ class MaintenanceScheduleController(Controller):
             schedule.next_service_date
         )
 
-        if isinstance(next_service_date, str):
-
+        if isinstance(
+            next_service_date,
+            str
+        ):
             try:
                 next_service_date = (
                     date.fromisoformat(
                         next_service_date
                     )
                 )
-            except (ValueError, TypeError):
+            except (
+                ValueError,
+                TypeError
+            ):
                 return {
                     "success": False,
                     "message": (
@@ -507,7 +729,10 @@ class MaintenanceScheduleController(Controller):
                 next_service_mileage = float(
                     next_service_mileage
                 )
-            except (ValueError, TypeError):
+            except (
+                ValueError,
+                TypeError
+            ):
                 return {
                     "success": False,
                     "message": (
@@ -521,11 +746,18 @@ class MaintenanceScheduleController(Controller):
         )
 
         try:
-            interval_days = int(interval_days)
-        except (ValueError, TypeError):
+            interval_days = int(
+                interval_days
+            )
+        except (
+            ValueError,
+            TypeError
+        ):
             return {
                 "success": False,
-                "message": "Invalid interval_days.",
+                "message": (
+                    "Invalid interval_days."
+                ),
             }, 400
 
         if interval_days <= 0:
@@ -549,7 +781,9 @@ class MaintenanceScheduleController(Controller):
             next_service_mileage
         )
 
-        schedule.interval_days = interval_days
+        schedule.interval_days = (
+            interval_days
+        )
 
         schedule.reminder_enabled = (
             reminder_enabled
@@ -560,7 +794,8 @@ class MaintenanceScheduleController(Controller):
         return {
             "success": True,
             "message": (
-                "Maintenance schedule updated successfully."
+                "Maintenance schedule updated "
+                "successfully."
             ),
             "data": self.schedule_to_dict(
                 schedule
@@ -572,7 +807,7 @@ class MaintenanceScheduleController(Controller):
     # =========================================================
 
     def destroy(self, request: Request):
-        """Delete a customer-owned maintenance schedule."""
+        """Delete a customer-owned schedule."""
 
         schedule_id = request.param("id")
 
@@ -583,7 +818,9 @@ class MaintenanceScheduleController(Controller):
         if not schedule:
             return {
                 "success": False,
-                "message": "Maintenance schedule not found.",
+                "message": (
+                    "Maintenance schedule not found."
+                ),
             }, 404
 
         if not self.customer_owns_schedule(

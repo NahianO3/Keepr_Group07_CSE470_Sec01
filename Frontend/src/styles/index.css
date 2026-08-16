@@ -3482,3 +3482,41 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================
+   Vehicle mileage update form
+   Append the contents of this file to the end of
+   src/styles/index.css
+========================= */
+
+.mileage-update-form {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.mileage-update-form label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-secondary, #475569);
+}
+
+.mileage-update-row {
+  display: flex;
+  gap: 10px;
+}
+
+.mileage-update-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  font-size: 14px;
+}
+
+.mileage-update-form .field-help {
+  display: block;
+  margin-top: 8px;
+}

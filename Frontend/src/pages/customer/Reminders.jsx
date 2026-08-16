@@ -24,6 +24,9 @@ export default function Reminders() {
   const [appliances, setAppliances] =
     useState([]);
 
+  const [vehicles, setVehicles] =
+    useState([]);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -37,6 +40,7 @@ export default function Reminders() {
           scheduleResponse,
           warrantyResponse,
           appliancesResponse,
+          vehiclesResponse,
         ] = await Promise.all([
           api.get(
             "/maintenance-schedules/due"
@@ -46,6 +50,9 @@ export default function Reminders() {
           ),
           api.get(
             "/appliances"
+          ),
+          api.get(
+            "/vehicles"
           ),
         ]);
 
@@ -61,6 +68,11 @@ export default function Reminders() {
 
         setAppliances(
           appliancesResponse.data?.data ||
+            []
+        );
+
+        setVehicles(
+          vehiclesResponse.data?.data ||
             []
         );
       } catch (err) {
@@ -88,6 +100,26 @@ export default function Reminders() {
     );
   };
 
+  const getVehicleName = (id) => {
+    const vehicle = vehicles.find(
+      (item) => item.id === id
+    );
+
+    return vehicle
+      ? `${vehicle.brand} ${vehicle.model}`
+      : `Vehicle #${id}`;
+  };
+
+  const getScheduleTarget = (schedule) =>
+    schedule.vehicle_id
+      ? `/vehicles/${schedule.vehicle_id}`
+      : `/appliances/${schedule.appliance_id}`;
+
+  const getScheduleName = (schedule) =>
+    schedule.vehicle_id
+      ? getVehicleName(schedule.vehicle_id)
+      : getApplianceName(schedule.appliance_id);
+
   return (
     <div className="dashboard-layout">
       <Sidebar />
@@ -105,7 +137,7 @@ export default function Reminders() {
 
             <p>
               Important maintenance and warranty
-              alerts for your appliances.
+              alerts for your appliances and vehicles.
             </p>
           </div>
         </header>
@@ -140,7 +172,7 @@ export default function Reminders() {
                   </strong>
 
                   <p>
-                    Appliance service tasks
+                    Maintenance service tasks
                   </p>
                 </div>
               </div>
@@ -207,7 +239,7 @@ export default function Reminders() {
                           className="reminder-card reminder-warning"
                           onClick={() =>
                             navigate(
-                              `/appliances/${schedule.appliance_id}`
+                              getScheduleTarget(schedule)
                             )
                           }
                         >
@@ -219,15 +251,16 @@ export default function Reminders() {
 
                           <div className="reminder-content">
                             <strong>
-                              {getApplianceName(
-                                schedule.appliance_id
-                              )}
+                              {getScheduleName(schedule)}
                             </strong>
 
                             <p>
                               Next service:{" "}
                               {schedule.next_service_date ||
                                 "Due"}
+                              {schedule.next_service_mileage
+                                ? ` (or ${schedule.next_service_mileage} km)`
+                                : ""}
                             </p>
                           </div>
 

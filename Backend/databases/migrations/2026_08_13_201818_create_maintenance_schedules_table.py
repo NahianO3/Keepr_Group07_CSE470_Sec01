@@ -40,13 +40,31 @@ class CreateMaintenanceSchedulesTable(Migration):
                 "appliance_id"
             ).references(
                 "id"
-            ).on("appliances").on_delete("cascade")
+            ).on(
+                "appliances"
+            ).on_delete(
+                "cascade"
+            )
 
             table.foreign(
                 "vehicle_id"
             ).references(
                 "id"
-            ).on("vehicles").on_delete("cascade")
+            ).on(
+                "vehicles"
+            ).on_delete(
+                "cascade"
+            )
+
+            table.unique(
+                "appliance_id",
+                name="maintenance_schedules_appliance_id_unique"
+            )
+
+            table.unique(
+                "vehicle_id",
+                name="maintenance_schedules_vehicle_id_unique"
+            )
 
             table.timestamps()
 
