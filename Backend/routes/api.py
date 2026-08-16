@@ -106,6 +106,16 @@ ROUTES = [
     # =========================
     # Customer - Maintenance Records
     # =========================
+    Route.get(
+       "/maintenance-records/diy",
+       "MaintenanceRecordController@diy_records",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.get(
+       "/maintenance-records/mechanic",
+       "MaintenanceRecordController@mechanic_records",
+    ).middleware("api_auth", "role:customer"),
+ 
 
     Route.get(
         "/maintenance-records",
