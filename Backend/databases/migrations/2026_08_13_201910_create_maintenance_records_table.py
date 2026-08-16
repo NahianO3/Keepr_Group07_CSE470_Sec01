@@ -1,4 +1,4 @@
-"""CreateMaintenanceRecordsTable Migration."""
+"""Create Maintenance Records Table."""
 
 from masoniteorm.migrations import Migration
 
@@ -6,22 +6,65 @@ from masoniteorm.migrations import Migration
 class CreateMaintenanceRecordsTable(Migration):
 
     def up(self):
-        with self.schema.create("maintenance_records") as table:
+        with self.schema.create(
+            "maintenance_records"
+        ) as table:
+
             table.increments("id")
 
-            table.integer("appliance_id").unsigned()
-            table.integer("service_provider_id").unsigned()
+            table.integer(
+                "appliance_id"
+            ).unsigned().nullable()
 
-            table.date("maintenance_date")
-            table.string("maintenance_type")
-            table.text("work_performed")
-            table.double("cost")
-            table.string("status")
+            table.integer(
+                "vehicle_id"
+            ).unsigned().nullable()
 
-            table.foreign("appliance_id").references("id").on("appliances")
-            table.foreign("service_provider_id").unsigned().nullable()
+            table.integer(
+                "service_provider_id"
+            ).unsigned().nullable()
+
+            table.date(
+                "maintenance_date"
+            )
+
+            table.string(
+                "maintenance_type"
+            )
+
+            table.text(
+                "work_performed"
+            ).nullable()
+
+            table.double(
+                "cost"
+            ).nullable()
+
+            table.string(
+                "status"
+            )
+
+            table.foreign(
+                "appliance_id"
+            ).references(
+                "id"
+            ).on("appliances").on_delete("cascade")
+
+            table.foreign(
+                "vehicle_id"
+            ).references(
+                "id"
+            ).on("vehicles").on_delete("cascade")
+
+            table.foreign(
+                "service_provider_id"
+            ).references(
+                "id"
+            ).on("users").on_delete("set null")
 
             table.timestamps()
 
     def down(self):
-        self.schema.drop("maintenance_records")
+        self.schema.drop(
+            "maintenance_records"
+        )
