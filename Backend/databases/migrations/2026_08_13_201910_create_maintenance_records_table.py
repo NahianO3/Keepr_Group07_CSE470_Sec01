@@ -19,7 +19,7 @@ class CreateMaintenanceRecordsTable(Migration):
             table.string("status")
 
             table.foreign("appliance_id").references("id").on("appliances")
-            table.foreign("service_provider_id").references("id").on("users")
+            table.foreign("service_provider_id").unsigned().nullable()
 
             table.timestamps()
 
