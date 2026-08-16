@@ -8,6 +8,7 @@ class MaintenanceSchedule(Model):
 
     __fillable__ = [
         "appliance_id",
+        "vehicle_id",
         "next_service_date",
         "next_service_mileage",
         "interval_days",
@@ -18,3 +19,8 @@ class MaintenanceSchedule(Model):
     def appliance(self):
         from app.models.Appliance import Appliance
         return Appliance
+
+    @belongs_to("vehicle_id", "id")
+    def vehicle(self):
+        from app.models.Vehicle import Vehicle
+        return Vehicle

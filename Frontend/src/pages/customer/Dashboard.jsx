@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Activity,
   Refrigerator,
+  Car,
   Wrench,
   CalendarClock,
   ShieldCheck,
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const { user } = useAuth();
 
   const [appliances, setAppliances] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [dueSchedules, setDueSchedules] = useState([]);
   const [warrantyDue, setWarrantyDue] = useState([]);
   const [records, setRecords] = useState([]);
@@ -30,17 +32,20 @@ export default function Dashboard() {
       try {
         const [
           appliancesResponse,
+          vehiclesResponse,
           schedulesResponse,
           warrantyResponse,
           recordsResponse,
         ] = await Promise.all([
           api.get("/appliances"),
+          api.get("/vehicles"),
           api.get("/maintenance-schedules/due"),
           api.get("/appliances/warranty-due"),
           api.get("/maintenance-records"),
         ]);
 
         setAppliances(appliancesResponse.data?.data || []);
+        setVehicles(vehiclesResponse.data?.data || []);
         setDueSchedules(
           schedulesResponse.data?.data || []
         );
@@ -108,6 +113,14 @@ export default function Dashboard() {
             label="My appliances"
             value={appliances.length}
             description="Registered appliances"
+            className="stat-appliances"
+          />
+
+          <Stat
+            icon={<Car size={20} />}
+            label="My vehicles"
+            value={vehicles.length}
+            description="Registered vehicles"
             className="stat-appliances"
           />
 
@@ -274,8 +287,9 @@ export default function Dashboard() {
                         </strong>
 
                         <p>
-                          Appliance #
-                          {schedule.appliance_id}
+                          {schedule.vehicle_id
+                            ? `Vehicle #${schedule.vehicle_id}`
+                            : `Appliance #${schedule.appliance_id}`}
                           {" "}needs attention.
                         </p>
                       </div>
@@ -311,6 +325,96 @@ export default function Dashboard() {
                       </div>
 
                       <ArrowRight size={17} />
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="dashboard-grid">
+          <div className="dashboard-section">
+            <div className="section-heading">
+              <div>
+                <span>YOUR VEHICLES</span>
+                <h2>My vehicles</h2>
+              </div>
+
+              <button
+                className="text-button"
+                onClick={() =>
+                  navigate("/vehicles")
+                }
+              >
+                View all
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {vehicles.length === 0 ? (
+              <div className="empty-card">
+                <Car size={30} />
+
+                <h3>No vehicles yet</h3>
+
+                <p>
+                  Register your first vehicle to begin
+                  tracking mileage-based and time-based
+                  maintenance.
+                </p>
+
+                <button
+                  className="dashboard-primary-button"
+                  onClick={() =>
+                    navigate("/vehicles")
+                  }
+                >
+                  <Plus size={17} />
+                  Add vehicle
+                </button>
+              </div>
+            ) : (
+              <div className="appliances-grid">
+                {vehicles
+                  .slice(0, 4)
+                  .map((vehicle) => (
+                    <button
+                      type="button"
+                      key={vehicle.id}
+                      className="appliance-card"
+                      onClick={() =>
+                        navigate(
+                          `/vehicles/${vehicle.id}`
+                        )
+                      }
+                    >
+                      <div className="appliance-icon">
+                        <Car size={23} />
+                      </div>
+
+                      <div className="appliance-info">
+                        <span>
+                          {vehicle.brand}
+                        </span>
+
+                        <h3>
+                          {vehicle.model}
+                        </h3>
+
+                        <p>
+                          Mileage:{" "}
+                          <strong>
+                            {vehicle.current_mileage ??
+                              "—"}{" "}
+                            km
+                          </strong>
+                        </p>
+                      </div>
+
+                      <ArrowRight
+                        size={18}
+                        className="card-arrow-icon"
+                      />
                     </button>
                   ))}
               </div>

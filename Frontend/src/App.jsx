@@ -8,6 +8,8 @@ import ResetPassword from "./pages/ResetPassword";
 import CustomerDashboard from "./pages/customer/Dashboard";
 import Appliances from "./pages/customer/Appliances";
 import ApplianceDetails from "./pages/customer/ApplianceDetails";
+import Vehicles from "./pages/customer/Vehicles";
+import VehicleDetails from "./pages/customer/VehicleDetails";
 import MaintenanceSchedules from "./pages/customer/MaintenanceSchedules";
 import MaintenanceHistory from "./pages/customer/MaintenanceHistory";
 import Reminders from "./pages/customer/Reminders";
@@ -123,6 +125,24 @@ export default function App() {
         element={
           <CustomerRoute>
             <ApplianceDetails />
+          </CustomerRoute>
+        }
+      />
+
+      <Route
+        path="/vehicles"
+        element={
+          <CustomerRoute>
+            <Vehicles />
+          </CustomerRoute>
+        }
+      />
+
+      <Route
+        path="/vehicles/:id"
+        element={
+          <CustomerRoute>
+            <VehicleDetails />
           </CustomerRoute>
         }
       />

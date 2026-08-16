@@ -70,7 +70,43 @@ ROUTES = [
     ).middleware("api_auth", "role:customer"),
 
     # =========================
+    # Customer - Vehicles
+    # =========================
+
+    Route.get(
+        "/vehicles",
+        "VehicleController@index",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.get(
+        "/vehicles/@id",
+        "VehicleController@show",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.post(
+        "/vehicles",
+        "VehicleController@store",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.put(
+        "/vehicles/@id",
+        "VehicleController@update",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.put(
+        "/vehicles/@id/mileage",
+        "VehicleController@update_mileage",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.delete(
+        "/vehicles/@id",
+        "VehicleController@destroy",
+    ).middleware("api_auth", "role:customer"),
+
+    # =========================
     # Customer - Maintenance Schedules
+    # (shared by Appliances and Vehicles - a schedule is linked to
+    # EITHER an appliance OR a vehicle, never both)
     # =========================
 
     Route.get(

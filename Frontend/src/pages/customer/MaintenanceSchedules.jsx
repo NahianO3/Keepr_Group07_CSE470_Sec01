@@ -11,32 +11,25 @@ import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 
 export default function MaintenanceSchedules() {
-  const [schedules, setSchedules] =
-    useState([]);
+  const [schedules, setSchedules] = useState([]);
 
-  const [appliances, setAppliances] =
-    useState([]);
+  const [appliances, setAppliances] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
 
-  const [selectedAppliance, setSelectedAppliance] =
-    useState("");
+  const [assetType, setAssetType] = useState("all");
+  const [selectedAsset, setSelectedAsset] = useState("");
 
-  const [showForm, setShowForm] =
-    useState(false);
-
+  const [showForm, setShowForm] = useState(false);
   const [editingSchedule, setEditingSchedule] =
     useState(null);
 
-  const [loading, setLoading] =
-    useState(true);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
-    appliance_id: "",
+    asset_type: "appliance",
+    asset_id: "",
     next_service_date: "",
     next_service_mileage: "",
     interval_days: "",
@@ -48,21 +41,28 @@ export default function MaintenanceSchedules() {
       setLoading(true);
       setError("");
 
+      const scheduleQuery =
+        assetType === "appliance" && selectedAsset
+          ? `?appliance_id=${selectedAsset}`
+          : assetType === "vehicle" && selectedAsset
+          ? `?vehicle_id=${selectedAsset}`
+          : "";
+
       const [
         appliancesResponse,
+        vehiclesResponse,
         schedulesResponse,
       ] = await Promise.all([
         api.get("/appliances"),
-        api.get(
-          selectedAppliance
-            ? `/maintenance-schedules?appliance_id=${selectedAppliance}`
-            : "/maintenance-schedules"
-        ),
+        api.get("/vehicles"),
+        api.get(`/maintenance-schedules${scheduleQuery}`),
       ]);
 
       setAppliances(
         appliancesResponse.data?.data || []
       );
+
+      setVehicles(vehiclesResponse.data?.data || []);
 
       setSchedules(
         schedulesResponse.data?.data || []
@@ -79,16 +79,15 @@ export default function MaintenanceSchedules() {
 
   useEffect(() => {
     loadData();
-  }, [selectedAppliance]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetType, selectedAsset]);
 
   const openAdd = () => {
     setEditingSchedule(null);
 
     setForm({
-      appliance_id:
-        selectedAppliance ||
-        appliances[0]?.id ||
-        "",
+      asset_type: "appliance",
+      asset_id: appliances[0]?.id || "",
       next_service_date: "",
       next_service_mileage: "",
       interval_days: "",
@@ -102,16 +101,20 @@ export default function MaintenanceSchedules() {
     setEditingSchedule(schedule);
 
     setForm({
-      appliance_id: schedule.appliance_id || "",
+      asset_type: schedule.vehicle_id
+        ? "vehicle"
+        : "appliance",
+      asset_id:
+        schedule.vehicle_id ||
+        schedule.appliance_id ||
+        "",
       next_service_date:
         schedule.next_service_date || "",
       next_service_mileage:
         schedule.next_service_mileage || "",
-      interval_days:
-        schedule.interval_days || "",
+      interval_days: schedule.interval_days || "",
       reminder_enabled:
-        schedule.reminder_enabled ??
-        true,
+        schedule.reminder_enabled ?? true,
     });
 
     setShowForm(true);
@@ -125,24 +128,22 @@ export default function MaintenanceSchedules() {
       setError("");
 
       const payload = {
-        appliance_id: Number(
-          form.appliance_id
-        ),
-        next_service_date:
-          form.next_service_date,
-        next_service_mileage:
-          form.next_service_mileage
-            ? Number(
-                form.next_service_mileage
-              )
+        appliance_id:
+          form.asset_type === "appliance"
+            ? Number(form.asset_id)
             : null,
-        interval_days: Number(
-          form.interval_days
+        vehicle_id:
+          form.asset_type === "vehicle"
+            ? Number(form.asset_id)
+            : null,
+        next_service_date: form.next_service_date,
+        next_service_mileage: form.next_service_mileage
+          ? Number(form.next_service_mileage)
+          : null,
+        interval_days: Number(form.interval_days),
+        reminder_enabled: Boolean(
+          form.reminder_enabled
         ),
-        reminder_enabled:
-          Boolean(
-            form.reminder_enabled
-          ),
       };
 
       if (editingSchedule) {
@@ -192,16 +193,29 @@ export default function MaintenanceSchedules() {
     }
   };
 
-  const getApplianceName = (id) => {
+  const getAssetName = (schedule) => {
+    if (schedule.vehicle_id) {
+      const vehicle = vehicles.find(
+        (item) => item.id === schedule.vehicle_id
+      );
+
+      return vehicle
+        ? `${vehicle.brand} ${vehicle.model}`
+        : `Vehicle #${schedule.vehicle_id}`;
+    }
+
     const appliance = appliances.find(
-      (item) => item.id === id
+      (item) => item.id === schedule.appliance_id
     );
 
     return (
       appliance?.name ||
-      `Appliance #${id}`
+      `Appliance #${schedule.appliance_id}`
     );
   };
+
+  const assetOptions =
+    form.asset_type === "vehicle" ? vehicles : appliances;
 
   return (
     <div className="dashboard-layout">
@@ -214,13 +228,11 @@ export default function MaintenanceSchedules() {
               RECURRING MAINTENANCE
             </span>
 
-            <h1>
-              Maintenance schedules
-            </h1>
+            <h1>Maintenance schedules</h1>
 
             <p>
-              Keep recurring appliance maintenance
-              organized and on time.
+              Keep recurring appliance and vehicle
+              maintenance organized and on time.
             </p>
           </div>
 
@@ -234,38 +246,55 @@ export default function MaintenanceSchedules() {
         </header>
 
         {error && (
-          <div className="form-error">
-            {error}
-          </div>
+          <div className="form-error">{error}</div>
         )}
 
         <div className="schedule-filter">
-          <label htmlFor="appliance-filter">
-            Filter by appliance
+          <label htmlFor="asset-type-filter">
+            Asset type
           </label>
 
           <select
-            id="appliance-filter"
-            value={selectedAppliance}
-            onChange={(event) =>
-              setSelectedAppliance(
-                event.target.value
-              )
-            }
+            id="asset-type-filter"
+            value={assetType}
+            onChange={(event) => {
+              setAssetType(event.target.value);
+              setSelectedAsset("");
+            }}
           >
-            <option value="">
-              All appliances
+            <option value="all">All assets</option>
+            <option value="appliance">
+              Appliances
             </option>
-
-            {appliances.map((appliance) => (
-              <option
-                key={appliance.id}
-                value={appliance.id}
-              >
-                {appliance.name}
-              </option>
-            ))}
+            <option value="vehicle">Vehicles</option>
           </select>
+
+          {assetType !== "all" && (
+            <select
+              value={selectedAsset}
+              onChange={(event) =>
+                setSelectedAsset(event.target.value)
+              }
+            >
+              <option value="">
+                All{" "}
+                {assetType === "vehicle"
+                  ? "vehicles"
+                  : "appliances"}
+              </option>
+
+              {(assetType === "vehicle"
+                ? vehicles
+                : appliances
+              ).map((asset) => (
+                <option key={asset.id} value={asset.id}>
+                  {assetType === "vehicle"
+                    ? `${asset.brand} ${asset.model}`
+                    : asset.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {loading ? (
@@ -276,13 +305,12 @@ export default function MaintenanceSchedules() {
           <div className="empty-card">
             <CalendarClock size={30} />
 
-            <h3>
-              No maintenance schedules
-            </h3>
+            <h3>No maintenance schedules</h3>
 
             <p>
-              Create a recurring schedule for one
-              of your appliances.
+              Create a recurring schedule for one of
+              your appliances, or register a vehicle to
+              have one generated automatically.
             </p>
 
             <button
@@ -305,27 +333,23 @@ export default function MaintenanceSchedules() {
                 </div>
 
                 <div className="schedule-content">
-                  <span>
-                    {getApplianceName(
-                      schedule.appliance_id
-                    )}
-                  </span>
+                  <span>{getAssetName(schedule)}</span>
 
-                  <h2>
-                    Next service
-                  </h2>
+                  <h2>Next service</h2>
 
                   <p>
                     {schedule.next_service_date ||
                       "Not scheduled"}
+                    {schedule.next_service_mileage
+                      ? ` \u00b7 ${schedule.next_service_mileage} km`
+                      : ""}
                   </p>
                 </div>
 
                 <div className="schedule-meta">
                   <strong>
                     Every{" "}
-                    {schedule.interval_days ||
-                      "—"}{" "}
+                    {schedule.interval_days || "—"}{" "}
                     days
                   </strong>
 
@@ -339,9 +363,7 @@ export default function MaintenanceSchedules() {
                 <div className="schedule-actions">
                   <button
                     type="button"
-                    onClick={() =>
-                      openEdit(schedule)
-                    }
+                    onClick={() => openEdit(schedule)}
                   >
                     <Pencil size={16} />
                   </button>
@@ -350,17 +372,13 @@ export default function MaintenanceSchedules() {
                     type="button"
                     className="delete-action"
                     onClick={() =>
-                      deleteSchedule(
-                        schedule
-                      )
+                      deleteSchedule(schedule)
                     }
                   >
                     <Trash2 size={16} />
                   </button>
 
-                  <ChevronRight
-                    size={17}
-                  />
+                  <ChevronRight size={17} />
                 </div>
               </article>
             ))}
@@ -386,9 +404,7 @@ export default function MaintenanceSchedules() {
                 <button
                   type="button"
                   className="modal-close"
-                  onClick={() =>
-                    setShowForm(false)
-                  }
+                  onClick={() => setShowForm(false)}
                 >
                   ×
                 </button>
@@ -398,46 +414,67 @@ export default function MaintenanceSchedules() {
                 className="auth-form"
                 onSubmit={saveSchedule}
               >
-                <label>
-                  Appliance
-                </label>
+                <label>Asset type</label>
 
                 <select
-                  value={form.appliance_id}
+                  value={form.asset_type}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      appliance_id:
-                        event.target.value,
+                      asset_type: event.target.value,
+                      asset_id: "",
+                    })
+                  }
+                  disabled={Boolean(editingSchedule)}
+                >
+                  <option value="appliance">
+                    Appliance
+                  </option>
+                  <option value="vehicle">
+                    Vehicle
+                  </option>
+                </select>
+
+                <label>
+                  {form.asset_type === "vehicle"
+                    ? "Vehicle"
+                    : "Appliance"}
+                </label>
+
+                <select
+                  value={form.asset_id}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      asset_id: event.target.value,
                     })
                   }
                   required
                 >
                   <option value="">
-                    Select appliance
+                    Select{" "}
+                    {form.asset_type === "vehicle"
+                      ? "vehicle"
+                      : "appliance"}
                   </option>
 
-                  {appliances.map(
-                    (appliance) => (
-                      <option
-                        key={appliance.id}
-                        value={appliance.id}
-                      >
-                        {appliance.name}
-                      </option>
-                    )
-                  )}
+                  {assetOptions.map((asset) => (
+                    <option
+                      key={asset.id}
+                      value={asset.id}
+                    >
+                      {form.asset_type === "vehicle"
+                        ? `${asset.brand} ${asset.model}`
+                        : asset.name}
+                    </option>
+                  ))}
                 </select>
 
-                <label>
-                  Next service date
-                </label>
+                <label>Next service date</label>
 
                 <input
                   type="date"
-                  value={
-                    form.next_service_date
-                  }
+                  value={form.next_service_date}
                   onChange={(event) =>
                     setForm({
                       ...form,
@@ -448,21 +485,16 @@ export default function MaintenanceSchedules() {
                   required
                 />
 
-                <label>
-                  Interval (days)
-                </label>
+                <label>Interval (days)</label>
 
                 <input
                   type="number"
                   min="1"
-                  value={
-                    form.interval_days
-                  }
+                  value={form.interval_days}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      interval_days:
-                        event.target.value,
+                      interval_days: event.target.value,
                     })
                   }
                   required
@@ -479,9 +511,7 @@ export default function MaintenanceSchedules() {
                 <input
                   type="number"
                   min="0"
-                  value={
-                    form.next_service_mileage
-                  }
+                  value={form.next_service_mileage}
                   onChange={(event) =>
                     setForm({
                       ...form,
@@ -494,9 +524,7 @@ export default function MaintenanceSchedules() {
                 <label className="checkbox-field">
                   <input
                     type="checkbox"
-                    checked={
-                      form.reminder_enabled
-                    }
+                    checked={form.reminder_enabled}
                     onChange={(event) =>
                       setForm({
                         ...form,
@@ -505,7 +533,6 @@ export default function MaintenanceSchedules() {
                       })
                     }
                   />
-
                   Enable reminders
                 </label>
 
@@ -513,9 +540,7 @@ export default function MaintenanceSchedules() {
                   <button
                     type="button"
                     className="secondary-button"
-                    onClick={() =>
-                      setShowForm(false)
-                    }
+                    onClick={() => setShowForm(false)}
                   >
                     Cancel
                   </button>
