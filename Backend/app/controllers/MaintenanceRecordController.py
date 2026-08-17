@@ -8,6 +8,7 @@ from masonite.request import Request
 from app.models.MaintenanceRecord import MaintenanceRecord
 from app.models.MaintenanceSchedule import MaintenanceSchedule
 from app.models.Appliance import Appliance
+from app.models.Vehicle import Vehicle
 from app.models.User import User
 
 
@@ -21,6 +22,7 @@ class MaintenanceRecordController(Controller):
         """Convert maintenance record to JSON-safe data."""
 
         maintenance_date = record.maintenance_date
+
         if maintenance_date:
             if hasattr(maintenance_date, "isoformat"):
                 maintenance_date = maintenance_date.isoformat()
@@ -28,6 +30,7 @@ class MaintenanceRecordController(Controller):
                 maintenance_date = str(maintenance_date)
 
         created_at = record.created_at
+
         if created_at:
             if hasattr(created_at, "isoformat"):
                 created_at = created_at.isoformat()
@@ -35,6 +38,7 @@ class MaintenanceRecordController(Controller):
                 created_at = str(created_at)
 
         updated_at = record.updated_at
+
         if updated_at:
             if hasattr(updated_at, "isoformat"):
                 updated_at = updated_at.isoformat()
@@ -44,6 +48,7 @@ class MaintenanceRecordController(Controller):
         return {
             "id": record.id,
             "appliance_id": record.appliance_id,
+            "vehicle_id": record.vehicle_id,
             "service_provider_id": record.service_provider_id,
             "maintenance_date": maintenance_date,
             "maintenance_type": record.maintenance_type,
@@ -64,6 +69,16 @@ class MaintenanceRecordController(Controller):
 
         return appliance.customer_id == customer.id
 
+    def customer_owns_vehicle(self, request, vehicle):
+        """Check whether logged-in customer owns vehicle."""
+
+        customer = request.user()
+
+        if not customer:
+            return False
+
+        return vehicle.customer_id == customer.id
+
     def customer_owns_record(self, request, record):
         """Check whether logged-in customer owns maintenance record."""
 
@@ -72,12 +87,31 @@ class MaintenanceRecordController(Controller):
         if not customer:
             return False
 
-        appliance = Appliance.find(record.appliance_id)
+        # Appliance maintenance record
+        if record.appliance_id is not None:
+            appliance = Appliance.find(record.appliance_id)
 
-        if not appliance:
-            return False
+            if not appliance:
+                return False
 
-        return appliance.customer_id == customer.id
+            return self.customer_owns_appliance(
+                request,
+                appliance
+            )
+
+        # Vehicle maintenance record
+        if record.vehicle_id is not None:
+            vehicle = Vehicle.find(record.vehicle_id)
+
+            if not vehicle:
+                return False
+
+            return self.customer_owns_vehicle(
+                request,
+                vehicle
+            )
+
+        return False
 
     def provider_owns_record(self, request, record):
         """Check whether logged-in provider owns maintenance record."""
@@ -88,6 +122,28 @@ class MaintenanceRecordController(Controller):
             return False
 
         return record.service_provider_id == provider.id
+
+    def owned_appliance_ids(self, customer):
+        """Return appliance IDs owned by customer."""
+
+        return {
+            appliance.id
+            for appliance in Appliance.where(
+                "customer_id",
+                customer.id
+            ).get()
+        }
+
+    def owned_vehicle_ids(self, customer):
+        """Return vehicle IDs owned by customer."""
+
+        return {
+            vehicle.id
+            for vehicle in Vehicle.where(
+                "customer_id",
+                customer.id
+            ).get()
+        }
 
     # =========================================================
     # CUSTOMER
@@ -105,8 +161,14 @@ class MaintenanceRecordController(Controller):
             }, 401
 
         appliance_id = request.input("appliance_id")
+        vehicle_id = request.input("vehicle_id")
+
+        # -----------------------------------------------------
+        # Filter by appliance
+        # -----------------------------------------------------
 
         if appliance_id:
+
             appliance = Appliance.find(appliance_id)
 
             if not appliance:
@@ -115,7 +177,10 @@ class MaintenanceRecordController(Controller):
                     "message": "Appliance not found."
                 }, 404
 
-            if not self.customer_owns_appliance(request, appliance):
+            if not self.customer_owns_appliance(
+                request,
+                appliance
+            ):
                 return {
                     "success": False,
                     "message": (
@@ -129,23 +194,60 @@ class MaintenanceRecordController(Controller):
                 appliance_id
             ).get()
 
-        else:
-            customer_appliances = Appliance.where(
-                "customer_id",
-                customer.id
+        # -----------------------------------------------------
+        # Filter by vehicle
+        # -----------------------------------------------------
+
+        elif vehicle_id:
+
+            vehicle = Vehicle.find(vehicle_id)
+
+            if not vehicle:
+                return {
+                    "success": False,
+                    "message": "Vehicle not found."
+                }, 404
+
+            if not self.customer_owns_vehicle(
+                request,
+                vehicle
+            ):
+                return {
+                    "success": False,
+                    "message": (
+                        "You do not have permission to access "
+                        "this vehicle."
+                    )
+                }, 403
+
+            records = MaintenanceRecord.where(
+                "vehicle_id",
+                vehicle_id
             ).get()
 
-            owned_appliance_ids = {
-                appliance.id
-                for appliance in customer_appliances
-            }
+        # -----------------------------------------------------
+        # All customer records
+        # -----------------------------------------------------
+
+        else:
+
+            owned_appliance_ids = (
+                self.owned_appliance_ids(customer)
+            )
+
+            owned_vehicle_ids = (
+                self.owned_vehicle_ids(customer)
+            )
 
             all_records = MaintenanceRecord.all()
 
             records = [
                 record
                 for record in all_records
-                if record.appliance_id in owned_appliance_ids
+                if (
+                    record.appliance_id in owned_appliance_ids
+                    or record.vehicle_id in owned_vehicle_ids
+                )
             ]
 
         return {
@@ -169,7 +271,10 @@ class MaintenanceRecordController(Controller):
                 "message": "Maintenance record not found."
             }, 404
 
-        if not self.customer_owns_record(request, record):
+        if not self.customer_owns_record(
+            request,
+            record
+        ):
             return {
                 "success": False,
                 "message": (
@@ -194,6 +299,9 @@ class MaintenanceRecordController(Controller):
         Mechanic:
             service_provider_id is required
             status defaults to Pending
+
+        Exactly one asset is required:
+            appliance_id OR vehicle_id
         """
 
         customer = request.user()
@@ -205,28 +313,84 @@ class MaintenanceRecordController(Controller):
             }, 401
 
         appliance_id = request.input("appliance_id")
+        vehicle_id = request.input("vehicle_id")
 
-        appliance = Appliance.find(appliance_id)
-
-        if not appliance:
-            return {
-                "success": False,
-                "message": "Appliance not found."
-            }, 404
-
-        if not self.customer_owns_appliance(request, appliance):
+        # Exactly one asset must be supplied.
+        if bool(appliance_id) == bool(vehicle_id):
             return {
                 "success": False,
                 "message": (
-                    "You do not have permission to create "
-                    "a maintenance record for this appliance."
+                    "Provide either appliance_id or "
+                    "vehicle_id, never both."
                 )
-            }, 403
+            }, 400
 
-        maintenance_date = request.input("maintenance_date")
-        maintenance_type = request.input("maintenance_type")
-        work_performed = request.input("work_performed")
+        # -----------------------------------------------------
+        # Appliance ownership
+        # -----------------------------------------------------
+
+        if appliance_id:
+
+            appliance = Appliance.find(appliance_id)
+
+            if not appliance:
+                return {
+                    "success": False,
+                    "message": "Appliance not found."
+                }, 404
+
+            if not self.customer_owns_appliance(
+                request,
+                appliance
+            ):
+                return {
+                    "success": False,
+                    "message": (
+                        "You do not have permission to create "
+                        "a maintenance record for this appliance."
+                    )
+                }, 403
+
+        # -----------------------------------------------------
+        # Vehicle ownership
+        # -----------------------------------------------------
+
+        else:
+
+            vehicle = Vehicle.find(vehicle_id)
+
+            if not vehicle:
+                return {
+                    "success": False,
+                    "message": "Vehicle not found."
+                }, 404
+
+            if not self.customer_owns_vehicle(
+                request,
+                vehicle
+            ):
+                return {
+                    "success": False,
+                    "message": (
+                        "You do not have permission to create "
+                        "a maintenance record for this vehicle."
+                    )
+                }, 403
+
+        maintenance_date = request.input(
+            "maintenance_date"
+        )
+
+        maintenance_type = request.input(
+            "maintenance_type"
+        )
+
+        work_performed = request.input(
+            "work_performed"
+        )
+
         cost = request.input("cost")
+
         status = request.input("status")
 
         # -----------------------------------------------------
@@ -277,6 +441,7 @@ class MaintenanceRecordController(Controller):
             maintenance_date = date.fromisoformat(
                 maintenance_date
             )
+
         except (ValueError, TypeError):
             return {
                 "success": False,
@@ -294,8 +459,10 @@ class MaintenanceRecordController(Controller):
             cost = 0
 
         elif cost is not None:
+
             try:
                 cost = float(cost)
+
             except (ValueError, TypeError):
                 return {
                     "success": False,
@@ -310,7 +477,9 @@ class MaintenanceRecordController(Controller):
 
             service_provider_id = None
 
-            record_status = status or "Completed"
+            record_status = (
+                status or "Completed"
+            )
 
         # -----------------------------------------------------
         # MECHANIC
@@ -350,14 +519,17 @@ class MaintenanceRecordController(Controller):
                     )
                 }, 400
 
-            record_status = status or "Pending"
+            record_status = (
+                status or "Pending"
+            )
 
         # -----------------------------------------------------
         # CREATE
         # -----------------------------------------------------
 
         record = MaintenanceRecord.create({
-            "appliance_id": appliance_id,
+            "appliance_id": appliance_id or None,
+            "vehicle_id": vehicle_id or None,
             "service_provider_id": service_provider_id,
             "maintenance_date": maintenance_date,
             "maintenance_type": maintenance_type,
@@ -389,7 +561,10 @@ class MaintenanceRecordController(Controller):
                 "message": "Maintenance record not found."
             }, 404
 
-        if not self.customer_owns_record(request, record):
+        if not self.customer_owns_record(
+            request,
+            record
+        ):
             return {
                 "success": False,
                 "message": (
@@ -558,7 +733,10 @@ class MaintenanceRecordController(Controller):
                 "message": "Maintenance record not found."
             }, 404
 
-        if not self.customer_owns_record(request, record):
+        if not self.customer_owns_record(
+            request,
+            record
+        ):
             return {
                 "success": False,
                 "message": (
@@ -589,15 +767,13 @@ class MaintenanceRecordController(Controller):
                 "message": "Authentication required."
             }, 401
 
-        customer_appliances = Appliance.where(
-            "customer_id",
-            customer.id
-        ).get()
+        owned_appliance_ids = (
+            self.owned_appliance_ids(customer)
+        )
 
-        owned_appliance_ids = {
-            appliance.id
-            for appliance in customer_appliances
-        }
+        owned_vehicle_ids = (
+            self.owned_vehicle_ids(customer)
+        )
 
         all_records = MaintenanceRecord.all()
 
@@ -605,8 +781,13 @@ class MaintenanceRecordController(Controller):
             record
             for record in all_records
             if (
-                record.appliance_id in owned_appliance_ids
-                and record.maintenance_type == "DIY"
+                record.maintenance_type == "DIY"
+                and (
+                    record.appliance_id
+                    in owned_appliance_ids
+                    or record.vehicle_id
+                    in owned_vehicle_ids
+                )
             )
         ]
 
@@ -629,15 +810,13 @@ class MaintenanceRecordController(Controller):
                 "message": "Authentication required."
             }, 401
 
-        customer_appliances = Appliance.where(
-            "customer_id",
-            customer.id
-        ).get()
+        owned_appliance_ids = (
+            self.owned_appliance_ids(customer)
+        )
 
-        owned_appliance_ids = {
-            appliance.id
-            for appliance in customer_appliances
-        }
+        owned_vehicle_ids = (
+            self.owned_vehicle_ids(customer)
+        )
 
         all_records = MaintenanceRecord.all()
 
@@ -645,8 +824,13 @@ class MaintenanceRecordController(Controller):
             record
             for record in all_records
             if (
-                record.appliance_id in owned_appliance_ids
-                and record.maintenance_type == "Mechanic"
+                record.maintenance_type == "Mechanic"
+                and (
+                    record.appliance_id
+                    in owned_appliance_ids
+                    or record.vehicle_id
+                    in owned_vehicle_ids
+                )
             )
         ]
 
@@ -935,8 +1119,12 @@ class MaintenanceRecordController(Controller):
         """
         Complete a mechanic maintenance request.
 
-        When completed, the appliance's recurring schedule
-        moves forward by interval_days.
+        For an appliance:
+            Advance its recurring appliance schedule.
+
+        For a vehicle:
+            Advance its recurring vehicle schedule,
+            including the time and mileage thresholds.
         """
 
         record_id = request.param("id")
@@ -980,14 +1168,13 @@ class MaintenanceRecordController(Controller):
 
         maintenance_date = record.maintenance_date
 
-        if isinstance(
-            maintenance_date,
-            str
-        ):
+        if isinstance(maintenance_date, str):
+
             try:
                 maintenance_date = date.fromisoformat(
                     maintenance_date
                 )
+
             except (ValueError, TypeError):
                 return {
                     "success": False,
@@ -999,40 +1186,123 @@ class MaintenanceRecordController(Controller):
         # -----------------------------------------------------
 
         record.status = "Completed"
+
         record.save()
 
-        # -----------------------------------------------------
-        # Advance recurring appliance schedule
-        # -----------------------------------------------------
+        # =====================================================
+        # APPLIANCE SCHEDULE
+        # =====================================================
 
-        schedule = MaintenanceSchedule.where(
-            "appliance_id",
-            record.appliance_id
-        ).first()
+        if record.appliance_id is not None:
 
-        if schedule and schedule.interval_days:
+            schedule = MaintenanceSchedule.where(
+                "appliance_id",
+                record.appliance_id
+            ).first()
 
-            try:
-                interval_days = int(
-                    schedule.interval_days
-                )
-            except (ValueError, TypeError):
-                interval_days = 0
+            if schedule and schedule.interval_days:
 
-            if interval_days > 0:
-
-                next_service_date = (
-                    maintenance_date
-                    + timedelta(
-                        days=interval_days
+                try:
+                    interval_days = int(
+                        schedule.interval_days
                     )
-                )
 
-                schedule.next_service_date = (
-                    next_service_date
-                )
+                except (ValueError, TypeError):
+                    interval_days = 0
 
-                schedule.save()
+                if interval_days > 0:
+
+                    next_service_date = (
+                        maintenance_date
+                        + timedelta(
+                            days=interval_days
+                        )
+                    )
+
+                    schedule.next_service_date = (
+                        next_service_date
+                    )
+
+                    schedule.save()
+
+        # =====================================================
+        # VEHICLE SCHEDULE
+        # =====================================================
+
+        elif record.vehicle_id is not None:
+
+            vehicle = Vehicle.find(
+                record.vehicle_id
+            )
+
+            if vehicle:
+
+                schedule = MaintenanceSchedule.where(
+                    "vehicle_id",
+                    record.vehicle_id
+                ).first()
+
+                if schedule:
+
+                    # -----------------------------------------
+                    # Time-based next service
+                    # -----------------------------------------
+
+                    if schedule.interval_days:
+
+                        try:
+                            interval_days = int(
+                                schedule.interval_days
+                            )
+
+                        except (ValueError, TypeError):
+                            interval_days = 0
+
+                        if interval_days > 0:
+
+                            schedule.next_service_date = (
+                                maintenance_date
+                                + timedelta(
+                                    days=interval_days
+                                )
+                            )
+
+                    # -----------------------------------------
+                    # Mileage-based next service
+                    # -----------------------------------------
+
+                    if vehicle.maintenance_interval_km:
+
+                        try:
+                            interval_km = float(
+                                vehicle.maintenance_interval_km
+                            )
+
+                        except (
+                            ValueError,
+                            TypeError
+                        ):
+                            interval_km = None
+
+                        if interval_km is not None:
+
+                            base_mileage = (
+                                vehicle.current_mileage
+                            )
+
+                            if base_mileage is None:
+                                base_mileage = (
+                                    vehicle.last_service_mileage
+                                )
+
+                            if base_mileage is not None:
+
+                                schedule.next_service_mileage = (
+                                    float(base_mileage)
+                                    + interval_km
+                                )
+
+                    schedule.save()
 
         return {
             "success": True,
