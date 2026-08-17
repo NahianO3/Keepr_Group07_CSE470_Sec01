@@ -4017,3 +4017,209 @@ a {
     align-self: flex-end;
   }
 }
+/* =========================
+   MAINTENANCE RECORDS
+========================= */
+
+.maintenance-record-filter {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.maintenance-record-list {
+  display: grid;
+  gap: 14px;
+}
+
+.maintenance-record-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+
+  padding: 20px;
+
+  border: 1px solid var(--border);
+  border-radius: 18px;
+
+  background: var(--white);
+
+  box-shadow:
+    0 2px 8px rgba(17, 24, 39, 0.02);
+}
+
+.maintenance-record-icon {
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 12px;
+
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.maintenance-record-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.maintenance-record-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.maintenance-record-top h2 {
+  margin: 5px 0 0;
+
+  color: var(--text);
+
+  font-size: 18px;
+}
+
+.maintenance-type-badge {
+  display: inline-flex;
+
+  padding: 5px 9px;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 0.06em;
+}
+
+.maintenance-type-diy {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.maintenance-type-mechanic {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.maintenance-record-work {
+  margin: 0 0 16px;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.maintenance-record-meta {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 16px;
+}
+
+.maintenance-record-meta div {
+  min-width: 0;
+}
+
+.maintenance-record-meta span {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: var(--text-muted);
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 0.06em;
+
+  text-transform: uppercase;
+}
+
+.maintenance-record-meta strong {
+  display: block;
+
+  color: var(--text-secondary);
+
+  font-size: 12px;
+
+  overflow-wrap: anywhere;
+}
+
+.maintenance-record-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.maintenance-record-actions button {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid var(--border);
+  border-radius: 9px;
+
+  background: var(--white);
+  color: var(--text-secondary);
+}
+
+.maintenance-record-actions button:hover {
+  border-color: var(--border-dark);
+  color: var(--text);
+}
+
+.maintenance-record-actions .delete-action:hover {
+  border-color: #fecaca;
+  color: var(--danger);
+}
+
+.field-help {
+  display: block;
+
+  margin-top: 6px;
+
+  color: var(--text-muted);
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .maintenance-record-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .maintenance-record-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .maintenance-record-card {
+    flex-direction: column;
+  }
+
+  .maintenance-record-top {
+    flex-direction: column;
+  }
+
+  .maintenance-record-actions {
+    align-self: flex-end;
+  }
+}

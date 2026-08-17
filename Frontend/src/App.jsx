@@ -12,6 +12,7 @@ import Vehicles from "./pages/customer/Vehicles";
 import VehicleDetails from "./pages/customer/VehicleDetails";
 import VehicleDocuments from "./pages/customer/VehicleDocuments";
 import MaintenanceSchedules from "./pages/customer/MaintenanceSchedules";
+import MaintenanceRecords from "./pages/customer/MaintenanceRecords";
 import MaintenanceHistory from "./pages/customer/MaintenanceHistory";
 import Reminders from "./pages/customer/Reminders";
 import Expenses from "./pages/customer/Expenses";
@@ -165,6 +166,15 @@ export default function App() {
           </CustomerRoute>
         }
       />
+      <Route
+        path="/maintenance-records"
+        element={
+          <CustomerRoute>
+             <MaintenanceRecords />
+          </CustomerRoute>
+        }
+      />
+
 
       <Route
         path="/maintenance-history"

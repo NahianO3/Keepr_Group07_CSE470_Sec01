@@ -54,6 +54,11 @@ const menus = {
       icon: CalendarClock,
     },
     {
+      to: "/maintenance-records",
+      label: "Maintenance Records",
+      icon: ClipboardList,
+    },
+    {
       to: "/maintenance-history",
       label: "History",
       icon: Wrench,
