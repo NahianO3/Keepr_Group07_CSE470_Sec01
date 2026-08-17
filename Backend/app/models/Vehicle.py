@@ -29,3 +29,8 @@ class Vehicle(Model):
     def maintenance_schedules(self):
         from app.models.MaintenanceSchedule import MaintenanceSchedule
         return MaintenanceSchedule
+
+    @has_many("id", "vehicle_id")
+    def vehicle_documents(self):
+        from app.models.VehicleDocument import VehicleDocument
+        return VehicleDocument

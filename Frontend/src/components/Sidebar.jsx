@@ -16,6 +16,24 @@ import {
 } from "lucide-react";
 
 import {
+  LayoutDashboard,
+  Refrigerator,
+  Car,
+  FileText,
+  Wrench,
+  Bell,
+  LogOut,
+  Settings,
+  CalendarClock,
+  ClipboardList,
+  UserCircle,
+  Users,
+  UserCheck,
+  ShieldCheck,
+  ClipboardCheck,
+} from "lucide-react";
+
+import {
   NavLink,
   useLocation,
   useNavigate,
@@ -40,6 +58,11 @@ const menus = {
       to: "/vehicles",
       label: "My Vehicles",
       icon: Car,
+    },
+    {
+      to: "/vehicle-documents",
+      label: "Vehicle Documents",
+      icon: FileText,
     },
     {
       to: "/maintenance-schedules",
