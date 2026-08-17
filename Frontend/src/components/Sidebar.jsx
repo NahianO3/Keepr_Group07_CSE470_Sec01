@@ -14,6 +14,7 @@ import {
   UserCheck,
   ShieldCheck,
   ClipboardCheck,
+  WalletCards,
 } from "lucide-react";
 
 import {
@@ -56,6 +57,11 @@ const menus = {
       to: "/maintenance-history",
       label: "History",
       icon: Wrench,
+    },
+    {
+      to: "/expenses",
+      label: "Expenses",
+      icon: WalletCards,
     },
     {
       to: "/reminders",
