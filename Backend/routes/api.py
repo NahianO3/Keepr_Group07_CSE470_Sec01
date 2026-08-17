@@ -104,6 +104,40 @@ ROUTES = [
     ).middleware("api_auth", "role:customer"),
 
     # =========================
+    # Customer - Vehicle Documents
+    # =========================
+
+    Route.get(
+        "/vehicle-documents",
+        "VehicleDocumentController@index",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.get(
+        "/vehicle-documents/expiry-due",
+        "VehicleDocumentController@expiry_due",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.get(
+        "/vehicle-documents/@id",
+        "VehicleDocumentController@show",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.post(
+        "/vehicle-documents",
+        "VehicleDocumentController@store",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.put(
+        "/vehicle-documents/@id",
+        "VehicleDocumentController@update",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.delete(
+        "/vehicle-documents/@id",
+        "VehicleDocumentController@destroy",
+    ).middleware("api_auth", "role:customer"),
+
+    # =========================
     # Customer - Maintenance Schedules
     # (shared by Appliances and Vehicles - a schedule is linked to
     # EITHER an appliance OR a vehicle, never both)

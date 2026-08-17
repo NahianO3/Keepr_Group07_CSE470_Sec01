@@ -10,6 +10,7 @@ import Appliances from "./pages/customer/Appliances";
 import ApplianceDetails from "./pages/customer/ApplianceDetails";
 import Vehicles from "./pages/customer/Vehicles";
 import VehicleDetails from "./pages/customer/VehicleDetails";
+import VehicleDocuments from "./pages/customer/VehicleDocuments";
 import MaintenanceSchedules from "./pages/customer/MaintenanceSchedules";
 import MaintenanceHistory from "./pages/customer/MaintenanceHistory";
 import Reminders from "./pages/customer/Reminders";
@@ -143,6 +144,14 @@ export default function App() {
         element={
           <CustomerRoute>
             <VehicleDetails />
+          </CustomerRoute>
+        }
+      />
+      <Route
+        path="/vehicle-documents"
+        element={
+          <CustomerRoute>
+            <VehicleDocuments />
           </CustomerRoute>
         }
       />
