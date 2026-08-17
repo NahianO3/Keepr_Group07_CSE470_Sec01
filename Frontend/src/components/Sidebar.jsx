@@ -2,23 +2,6 @@ import {
   LayoutDashboard,
   Refrigerator,
   Car,
-  Wrench,
-  Bell,
-  LogOut,
-  Settings,
-  CalendarClock,
-  ClipboardList,
-  UserCircle,
-  Users,
-  UserCheck,
-  ShieldCheck,
-  ClipboardCheck,
-} from "lucide-react";
-
-import {
-  LayoutDashboard,
-  Refrigerator,
-  Car,
   FileText,
   Wrench,
   Bell,
