@@ -8,6 +8,7 @@ class MaintenanceRecord(Model):
 
     __fillable__ = [
         "appliance_id",
+        "vehicle_id",
         "service_provider_id",
         "maintenance_date",
         "maintenance_type",
@@ -20,6 +21,11 @@ class MaintenanceRecord(Model):
     def appliance(self):
         from app.models.Appliance import Appliance
         return Appliance
+
+    @belongs_to("vehicle_id", "id")
+    def vehicle(self):
+        from app.models.Vehicle import Vehicle
+        return Vehicle
 
     @belongs_to("service_provider_id", "id")
     def service_provider(self):
