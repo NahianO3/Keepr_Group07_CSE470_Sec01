@@ -212,6 +212,40 @@ ROUTES = [
         "MaintenanceRecordController@destroy",
     ).middleware("api_auth", "role:customer"),
 
+
+    # =========================
+    # Customer - Expenses
+    # =========================
+
+    Route.get(
+        "/expenses/summary",
+        "ExpenseController@summary",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.get(
+        "/expenses",
+        "ExpenseController@index",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.get(
+        "/expenses/@id",
+        "ExpenseController@show",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.post(
+        "/expenses",
+        "ExpenseController@store",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.put(
+        "/expenses/@id",
+        "ExpenseController@update",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.delete(
+        "/expenses/@id",
+        "ExpenseController@destroy",
+    ).middleware("api_auth", "role:customer"),
     # =========================
     # Service Provider
     # =========================
