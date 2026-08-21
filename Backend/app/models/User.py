@@ -16,8 +16,15 @@ class User(Model, Authenticates, Authorizes):
         "address",
         "role",
         "account_status",
+        "service_category",
+        "service_area",
+        "bio",
+        "hourly_rate",
+        "rating",
+        "rating_count",
+        "completed_service_count",
+        "is_available",
     ]
-
     __hidden__ = [
         "password",
     ]

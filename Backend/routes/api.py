@@ -213,6 +213,37 @@ ROUTES = [
     ).middleware("api_auth", "role:service_provider"),
 
     # =========================
+    # Customer - Service Providers
+    # (search & browse verified providers)
+    # =========================
+
+    Route.get(
+        "/providers",
+        "ServiceProviderController@index",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.get(
+        "/providers/@id",
+        "ServiceProviderController@show",
+    ).middleware("api_auth", "role:customer"),
+
+    # =========================
+    # Service Provider - own profile
+    # (fields customers search/filter against)
+    # =========================
+
+    Route.get(
+        "/provider/profile",
+        "ServiceProviderController@my_profile",
+    ).middleware("api_auth", "role:service_provider"),
+
+    Route.put(
+        "/provider/profile",
+        "ServiceProviderController@update_profile",
+    ).middleware("api_auth", "role:service_provider"),
+
+    
+    # =========================
     # Administrator
     # =========================
 
