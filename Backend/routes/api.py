@@ -242,6 +242,31 @@ ROUTES = [
         "ServiceProviderController@update_profile",
     ).middleware("api_auth", "role:service_provider"),
 
+    # =========================
+    # Service Provider - offered services
+    # (Module 3, Feature 4)
+    # =========================
+
+    Route.get(
+        "/provider/services",
+        "ServiceController@index",
+    ).middleware("api_auth", "role:service_provider"),
+
+    Route.post(
+        "/provider/services",
+        "ServiceController@store",
+    ).middleware("api_auth", "role:service_provider"),
+
+    Route.put(
+        "/provider/services/@id",
+        "ServiceController@update",
+    ).middleware("api_auth", "role:service_provider"),
+
+    Route.delete(
+        "/provider/services/@id",
+        "ServiceController@destroy",
+    ).middleware("api_auth", "role:service_provider"),
+
     
     # =========================
     # Administrator

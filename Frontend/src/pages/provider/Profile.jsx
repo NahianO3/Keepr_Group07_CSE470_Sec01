@@ -8,17 +8,24 @@ import {
   BadgeCheck,
   Star,
   CheckCircle2,
+  Wrench,
+  Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
+import ServiceForm from "../../components/ServiceForm";
 import { useAuth } from "../../context/AuthContext";
 
 const emptyForm = {
   service_category: "",
   service_area: "",
+  expertise: "",
   bio: "",
   hourly_rate: "",
+  availability_schedule: "",
   is_available: true,
 };
 
@@ -27,6 +34,16 @@ export default function ProviderProfile() {
 
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(emptyForm);
+
+  const [services, setServices] = useState([]);
+  const [showServiceForm, setShowServiceForm] =
+    useState(false);
+  const [editingService, setEditingService] =
+    useState(null);
+  const [savingService, setSavingService] =
+    useState(false);
+  const [servicesError, setServicesError] =
+    useState("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -42,8 +59,11 @@ export default function ProviderProfile() {
       setForm({
         service_category: data?.service_category || "",
         service_area: data?.service_area || "",
+        expertise: data?.expertise || "",
         bio: data?.bio || "",
         hourly_rate: data?.hourly_rate ?? "",
+        availability_schedule:
+          data?.availability_schedule || "",
         is_available: data?.is_available ?? true,
       });
     } catch (err) {
@@ -54,8 +74,26 @@ export default function ProviderProfile() {
     }
   };
 
+  const loadServices = async () => {
+    try {
+      setServicesError("");
+
+      const response = await api.get(
+        "/provider/services"
+      );
+
+      setServices(response.data?.data || []);
+    } catch (err) {
+      setServicesError(
+        err.response?.data?.message ||
+          "Unable to load your services."
+      );
+    }
+  };
+
   useEffect(() => {
     loadProfile();
+    loadServices();
   }, []);
 
   const updateField = (field, value) => {
@@ -76,9 +114,12 @@ export default function ProviderProfile() {
       const response = await api.put("/provider/profile", {
         service_category: form.service_category.trim(),
         service_area: form.service_area.trim(),
+        expertise: form.expertise.trim(),
         bio: form.bio.trim(),
         hourly_rate:
           form.hourly_rate === "" ? "" : Number(form.hourly_rate),
+        availability_schedule:
+          form.availability_schedule.trim(),
         is_available: form.is_available,
       });
 
@@ -91,6 +132,72 @@ export default function ProviderProfile() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openAddService = () => {
+    setEditingService(null);
+    setShowServiceForm(true);
+  };
+
+  const openEditService = (service) => {
+    setEditingService(service);
+    setShowServiceForm(true);
+  };
+
+  const closeServiceForm = () => {
+    if (savingService) return;
+
+    setShowServiceForm(false);
+    setEditingService(null);
+  };
+
+  const saveService = async (values) => {
+    try {
+      setSavingService(true);
+      setServicesError("");
+
+      if (editingService) {
+        await api.put(
+          `/provider/services/${editingService.id}`,
+          values
+        );
+      } else {
+        await api.post("/provider/services", values);
+      }
+
+      closeServiceForm();
+      await loadServices();
+    } catch (err) {
+      setServicesError(
+        err.response?.data?.message ||
+          "Unable to save service."
+      );
+    } finally {
+      setSavingService(false);
+    }
+  };
+
+  const deleteService = async (service) => {
+    const confirmed = window.confirm(
+      `Remove "${service.service_name}" from your offered services?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setServicesError("");
+
+      await api.delete(
+        `/provider/services/${service.id}`
+      );
+
+      await loadServices();
+    } catch (err) {
+      setServicesError(
+        err.response?.data?.message ||
+          "Unable to delete service."
+      );
     }
   };
 
@@ -221,6 +328,19 @@ export default function ProviderProfile() {
                 </div>
 
                 <div className="form-field">
+                  <label>Expertise</label>
+                  <input
+                    type="text"
+                    value={form.expertise}
+                    onChange={(e) =>
+                      updateField("expertise", e.target.value)
+                    }
+                    disabled={saving}
+                    placeholder="e.g. Split & window AC units, inverter systems"
+                  />
+                </div>
+
+                <div className="form-field">
                   <label>Hourly rate (৳)</label>
                   <input
                     type="number"
@@ -254,6 +374,22 @@ export default function ProviderProfile() {
                 </div>
 
                 <div className="form-field form-field-full">
+                  <label>Availability schedule</label>
+                  <textarea
+                    rows="2"
+                    value={form.availability_schedule}
+                    onChange={(e) =>
+                      updateField(
+                        "availability_schedule",
+                        e.target.value
+                      )
+                    }
+                    disabled={saving}
+                    placeholder="e.g. Mon-Fri 9AM-6PM, Sat 10AM-2PM"
+                  />
+                </div>
+
+                <div className="form-field form-field-full">
                   <label>Bio</label>
                   <textarea
                     rows="3"
@@ -284,8 +420,125 @@ export default function ProviderProfile() {
               </div>
             </form>
           </div>
+
+          <div className="profile-card profile-services-card">
+            <div className="section-heading">
+              <div>
+                <span>OFFERED SERVICES</span>
+                <h2>My services</h2>
+              </div>
+
+              <button
+                type="button"
+                className="dashboard-primary-button"
+                onClick={openAddService}
+              >
+                <Plus size={17} />
+                Add service
+              </button>
+            </div>
+
+            {servicesError && (
+              <div className="form-error">
+                {servicesError}
+              </div>
+            )}
+
+            {services.length === 0 ? (
+              <div className="empty-card">
+                <Wrench size={28} />
+
+                <h3>No services listed yet</h3>
+
+                <p>
+                  Add the specific services you offer so
+                  customers know exactly what you can help
+                  with, along with pricing and duration.
+                </p>
+
+                <button
+                  className="dashboard-primary-button"
+                  onClick={openAddService}
+                >
+                  <Plus size={16} />
+                  Add service
+                </button>
+              </div>
+            ) : (
+              <div className="schedule-list">
+                {services.map((service) => (
+                  <article
+                    key={service.id}
+                    className="schedule-card"
+                  >
+                    <div className="schedule-icon">
+                      <Wrench size={20} />
+                    </div>
+
+                    <div className="schedule-content">
+                      <span>
+                        {service.category ||
+                          "Service"}
+                      </span>
+
+                      <h2>{service.service_name}</h2>
+
+                      <p>
+                        {service.description ||
+                          "No description provided."}
+                      </p>
+                    </div>
+
+                    <div className="schedule-meta">
+                      <strong>
+                        {service.estimated_price != null
+                          ? `৳${service.estimated_price}`
+                          : "Price on request"}
+                      </strong>
+
+                      <span>
+                        {service.estimated_duration_hours
+                          ? `${service.estimated_duration_hours} hr est.`
+                          : "Duration varies"}
+                      </span>
+                    </div>
+
+                    <div className="schedule-actions">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openEditService(service)
+                        }
+                      >
+                        <Pencil size={16} />
+                      </button>
+
+                      <button
+                        type="button"
+                        className="delete-action"
+                        onClick={() =>
+                          deleteService(service)
+                        }
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </main>
+
+      {showServiceForm && (
+        <ServiceForm
+          service={editingService}
+          onSubmit={saveService}
+          onClose={closeServiceForm}
+          loading={savingService}
+        />
+      )}
     </div>
   );
 }

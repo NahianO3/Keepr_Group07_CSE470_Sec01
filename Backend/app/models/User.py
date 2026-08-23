@@ -2,6 +2,7 @@
 import jwt
 from masonite.environment import env
 from masoniteorm.models import Model
+from masoniteorm.relationships import has_many
 from masonite.authentication import Authenticates
 from masonite.authorization import Authorizes
 
@@ -24,12 +25,20 @@ class User(Model, Authenticates, Authorizes):
         "rating_count",
         "completed_service_count",
         "is_available",
+        "expertise",
+        "availability_schedule",
     ]
     __hidden__ = [
         "password",
     ]
 
     __auth__ = "email"
+
+    @has_many("id", "service_provider_id")
+    def services(self):
+        from app.models.Service import Service
+        return Service
+
     def generate_jwt(self):
         payload = {
             "user_id": self.id,
