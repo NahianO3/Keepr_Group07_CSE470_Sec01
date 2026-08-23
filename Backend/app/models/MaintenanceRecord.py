@@ -1,7 +1,7 @@
 """MaintenanceRecord Model."""
 
 from masoniteorm.models import Model
-from masoniteorm.relationships import belongs_to
+from masoniteorm.relationships import belongs_to, has_many
 
 
 class MaintenanceRecord(Model):
@@ -31,3 +31,13 @@ class MaintenanceRecord(Model):
     def service_provider(self):
         from app.models.User import User
         return User
+
+    @has_many("id", "maintenance_record_id")
+    def reviews(self):
+        from app.models.Review import Review
+        return Review
+
+    @has_many("id", "maintenance_record_id")
+    def reports(self):
+        from app.models.Report import Report
+        return Report

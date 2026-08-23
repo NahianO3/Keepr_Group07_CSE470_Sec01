@@ -1,17 +1,18 @@
-"""Review Model."""
+"""Report Model."""
 
 from masoniteorm.models import Model
 from masoniteorm.relationships import belongs_to
 
 
-class Review(Model):
+class Report(Model):
 
     __fillable__ = [
         "maintenance_record_id",
-        "customer_id",
+        "reporter_id",
         "service_provider_id",
-        "rating",
-        "review",
+        "reason",
+        "description",
+        "status",
     ]
 
     @belongs_to(
@@ -23,10 +24,10 @@ class Review(Model):
         return MaintenanceRecord
 
     @belongs_to(
-        "customer_id",
+        "reporter_id",
         "id"
     )
-    def customer(self):
+    def reporter(self):
         from app.models.User import User
         return User
 

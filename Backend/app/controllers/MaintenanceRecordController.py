@@ -87,7 +87,6 @@ class MaintenanceRecordController(Controller):
         if not customer:
             return False
 
-        # Appliance maintenance record
         if record.appliance_id is not None:
             appliance = Appliance.find(record.appliance_id)
 
@@ -99,7 +98,6 @@ class MaintenanceRecordController(Controller):
                 appliance
             )
 
-        # Vehicle maintenance record
         if record.vehicle_id is not None:
             vehicle = Vehicle.find(record.vehicle_id)
 
@@ -163,10 +161,6 @@ class MaintenanceRecordController(Controller):
         appliance_id = request.input("appliance_id")
         vehicle_id = request.input("vehicle_id")
 
-        # -----------------------------------------------------
-        # Filter by appliance
-        # -----------------------------------------------------
-
         if appliance_id:
 
             appliance = Appliance.find(appliance_id)
@@ -194,10 +188,6 @@ class MaintenanceRecordController(Controller):
                 appliance_id
             ).get()
 
-        # -----------------------------------------------------
-        # Filter by vehicle
-        # -----------------------------------------------------
-
         elif vehicle_id:
 
             vehicle = Vehicle.find(vehicle_id)
@@ -224,10 +214,6 @@ class MaintenanceRecordController(Controller):
                 "vehicle_id",
                 vehicle_id
             ).get()
-
-        # -----------------------------------------------------
-        # All customer records
-        # -----------------------------------------------------
 
         else:
 
@@ -315,7 +301,6 @@ class MaintenanceRecordController(Controller):
         appliance_id = request.input("appliance_id")
         vehicle_id = request.input("vehicle_id")
 
-        # Exactly one asset must be supplied.
         if bool(appliance_id) == bool(vehicle_id):
             return {
                 "success": False,
@@ -324,10 +309,6 @@ class MaintenanceRecordController(Controller):
                     "vehicle_id, never both."
                 )
             }, 400
-
-        # -----------------------------------------------------
-        # Appliance ownership
-        # -----------------------------------------------------
 
         if appliance_id:
 
@@ -350,10 +331,6 @@ class MaintenanceRecordController(Controller):
                         "a maintenance record for this appliance."
                     )
                 }, 403
-
-        # -----------------------------------------------------
-        # Vehicle ownership
-        # -----------------------------------------------------
 
         else:
 
@@ -393,10 +370,6 @@ class MaintenanceRecordController(Controller):
 
         status = request.input("status")
 
-        # -----------------------------------------------------
-        # Required fields
-        # -----------------------------------------------------
-
         if not maintenance_date:
             return {
                 "success": False,
@@ -415,10 +388,6 @@ class MaintenanceRecordController(Controller):
                 "message": "work_performed is required."
             }, 400
 
-        # -----------------------------------------------------
-        # Maintenance type
-        # -----------------------------------------------------
-
         allowed_types = [
             "DIY",
             "Mechanic"
@@ -432,10 +401,6 @@ class MaintenanceRecordController(Controller):
                     "Use either DIY or Mechanic."
                 )
             }, 400
-
-        # -----------------------------------------------------
-        # Date
-        # -----------------------------------------------------
 
         try:
             maintenance_date = date.fromisoformat(
@@ -451,10 +416,6 @@ class MaintenanceRecordController(Controller):
                 )
             }, 400
 
-        # -----------------------------------------------------
-        # Cost
-        # -----------------------------------------------------
-
         if cost == "":
             cost = 0
 
@@ -469,10 +430,6 @@ class MaintenanceRecordController(Controller):
                     "message": "Invalid cost."
                 }, 400
 
-        # -----------------------------------------------------
-        # DIY
-        # -----------------------------------------------------
-
         if maintenance_type == "DIY":
 
             service_provider_id = None
@@ -480,10 +437,6 @@ class MaintenanceRecordController(Controller):
             record_status = (
                 status or "Completed"
             )
-
-        # -----------------------------------------------------
-        # MECHANIC
-        # -----------------------------------------------------
 
         else:
 
@@ -522,10 +475,6 @@ class MaintenanceRecordController(Controller):
             record_status = (
                 status or "Pending"
             )
-
-        # -----------------------------------------------------
-        # CREATE
-        # -----------------------------------------------------
 
         record = MaintenanceRecord.create({
             "appliance_id": appliance_id or None,
@@ -573,10 +522,6 @@ class MaintenanceRecordController(Controller):
                 )
             }, 403
 
-        # -----------------------------------------------------
-        # Date
-        # -----------------------------------------------------
-
         maintenance_date = request.input(
             "maintenance_date",
             record.maintenance_date
@@ -598,10 +543,6 @@ class MaintenanceRecordController(Controller):
                     )
                 }, 400
 
-        # -----------------------------------------------------
-        # Type
-        # -----------------------------------------------------
-
         maintenance_type = request.input(
             "maintenance_type",
             record.maintenance_type
@@ -621,10 +562,6 @@ class MaintenanceRecordController(Controller):
                 )
             }, 400
 
-        # -----------------------------------------------------
-        # Work
-        # -----------------------------------------------------
-
         work_performed = request.input(
             "work_performed",
             record.work_performed
@@ -635,10 +572,6 @@ class MaintenanceRecordController(Controller):
                 "success": False,
                 "message": "work_performed is required."
             }, 400
-
-        # -----------------------------------------------------
-        # Cost
-        # -----------------------------------------------------
 
         cost = request.input(
             "cost",
@@ -658,10 +591,6 @@ class MaintenanceRecordController(Controller):
                     "success": False,
                     "message": "Invalid cost."
                 }, 400
-
-        # -----------------------------------------------------
-        # Provider
-        # -----------------------------------------------------
 
         if maintenance_type == "DIY":
 
@@ -701,10 +630,6 @@ class MaintenanceRecordController(Controller):
                         "service provider."
                     )
                 }, 400
-
-        # -----------------------------------------------------
-        # Save
-        # -----------------------------------------------------
 
         record.maintenance_date = maintenance_date
         record.maintenance_type = maintenance_type
@@ -1189,6 +1114,21 @@ class MaintenanceRecordController(Controller):
 
         record.save()
 
+        # -----------------------------------------------------
+        # Module 3 Feature 6:
+        # update provider completed-service count
+        # -----------------------------------------------------
+
+        provider = request.user()
+
+        if provider:
+
+            provider.completed_service_count = (
+                provider.completed_service_count or 0
+            ) + 1
+
+            provider.save()
+
         # =====================================================
         # APPLIANCE SCHEDULE
         # =====================================================
@@ -1244,10 +1184,6 @@ class MaintenanceRecordController(Controller):
 
                 if schedule:
 
-                    # -----------------------------------------
-                    # Time-based next service
-                    # -----------------------------------------
-
                     if schedule.interval_days:
 
                         try:
@@ -1266,10 +1202,6 @@ class MaintenanceRecordController(Controller):
                                     days=interval_days
                                 )
                             )
-
-                    # -----------------------------------------
-                    # Mileage-based next service
-                    # -----------------------------------------
 
                     if vehicle.maintenance_interval_km:
 
