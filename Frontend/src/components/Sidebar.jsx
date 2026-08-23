@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   ClipboardCheck,
   WalletCards,
+  Clock3,
 } from "lucide-react";
 
 import {
@@ -57,6 +58,11 @@ const menus = {
       to: "/maintenance-records",
       label: "Maintenance Records",
       icon: ClipboardList,
+    },
+    {
+      to: "/maintenance-request-status",
+      label: "Service Requests",
+      icon: Clock3,
     },
     {
       to: "/maintenance-history",
@@ -144,15 +150,24 @@ export default function Sidebar() {
 
   const isActive = (link) => {
     if (link.to === "/dashboard") {
-      return location.pathname === "/dashboard";
+      return (
+        location.pathname ===
+        "/dashboard"
+      );
     }
 
     if (link.to === "/provider") {
-      return location.pathname === "/provider";
+      return (
+        location.pathname ===
+        "/provider"
+      );
     }
 
     if (link.to === "/admin") {
-      return location.pathname === "/admin";
+      return (
+        location.pathname ===
+        "/admin"
+      );
     }
 
     return (
@@ -165,7 +180,8 @@ export default function Sidebar() {
 
   const roleLabel = {
     customer: "Customer",
-    service_provider: "Service Provider",
+    service_provider:
+      "Service Provider",
     admin: "Administrator",
   }[role];
 
@@ -248,8 +264,7 @@ export default function Sidebar() {
 
           <div>
             <strong>
-              {user?.email ||
-                "User"}
+              {user?.email || "User"}
             </strong>
 
             <span>

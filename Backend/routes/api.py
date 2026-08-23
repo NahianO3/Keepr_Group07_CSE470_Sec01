@@ -178,8 +178,7 @@ ROUTES = [
     ).middleware("api_auth", "role:customer"),
 
     # =========================
-    # Service Provider
-    # - Feature 5 request management
+    # Service Provider - Requests
     # =========================
 
     Route.get(
@@ -227,7 +226,7 @@ ROUTES = [
     ).middleware("api_auth", "role:customer"),
 
     # =========================
-    # Service Provider - Own Profile
+    # Service Provider - Profile
     # =========================
 
     Route.get(
@@ -241,7 +240,7 @@ ROUTES = [
     ).middleware("api_auth", "role:service_provider"),
 
     # =========================
-    # Service Provider - Offered Services
+    # Service Provider - Services
     # =========================
 
     Route.get(
@@ -266,7 +265,7 @@ ROUTES = [
 
     # =========================================================
     # Module 3 Feature 6
-    # Customer - Post Maintenance Actions
+    # Customer - Bookmarks
     # =========================================================
 
     Route.get(
@@ -283,6 +282,11 @@ ROUTES = [
         "/providers/@id/bookmark",
         "BookmarkController@destroy",
     ).middleware("api_auth", "role:customer"),
+
+    # =========================================================
+    # Module 3 Feature 6
+    # Customer - Reviews / Ratings
+    # =========================================================
 
     Route.get(
         "/providers/@id/reviews",
@@ -303,6 +307,11 @@ ROUTES = [
         "/reviews/@id",
         "ReviewController@destroy",
     ).middleware("api_auth", "role:customer"),
+
+    # =========================================================
+    # Module 3 Feature 6
+    # Customer - Reports
+    # =========================================================
 
     Route.post(
         "/maintenance-records/@id/report",

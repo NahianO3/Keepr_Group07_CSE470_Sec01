@@ -14,6 +14,7 @@ import VehicleDocuments from "./pages/customer/VehicleDocuments";
 import MaintenanceSchedules from "./pages/customer/MaintenanceSchedules";
 import MaintenanceRecords from "./pages/customer/MaintenanceRecords";
 import MaintenanceHistory from "./pages/customer/MaintenanceHistory";
+import MaintenanceRequestStatus from "./pages/customer/MaintenanceRequestStatus";
 import Reminders from "./pages/customer/Reminders";
 import Expenses from "./pages/customer/Expenses";
 
@@ -89,16 +90,12 @@ export default function App() {
 
       <Route
         path="/forgot-password"
-        element={
-          <ForgotPassword />
-        }
+        element={<ForgotPassword />}
       />
 
       <Route
         path="/reset-password"
-        element={
-          <ResetPassword />
-        }
+        element={<ResetPassword />}
       />
 
       {/* =========================
@@ -149,6 +146,7 @@ export default function App() {
           </CustomerRoute>
         }
       />
+
       <Route
         path="/vehicle-documents"
         element={
@@ -166,15 +164,15 @@ export default function App() {
           </CustomerRoute>
         }
       />
+
       <Route
         path="/maintenance-records"
         element={
           <CustomerRoute>
-             <MaintenanceRecords />
+            <MaintenanceRecords />
           </CustomerRoute>
         }
       />
-
 
       <Route
         path="/maintenance-history"
@@ -184,6 +182,16 @@ export default function App() {
           </CustomerRoute>
         }
       />
+
+      <Route
+        path="/maintenance-request-status"
+        element={
+          <CustomerRoute>
+            <MaintenanceRequestStatus />
+          </CustomerRoute>
+        }
+      />
+
       <Route
         path="/expenses"
         element={

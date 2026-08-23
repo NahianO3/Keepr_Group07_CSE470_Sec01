@@ -40,37 +40,6 @@ class ReviewController(Controller):
 
         return False
 
-    def provider_stats(self, provider_id):
-        provider = User.find(provider_id)
-
-        if not provider:
-            return
-
-        reviews = Review.where(
-            "service_provider_id",
-            provider_id
-        ).get()
-
-        count = len(reviews)
-
-        if count == 0:
-            provider.rating = 0
-            provider.rating_count = 0
-        else:
-            total = sum(
-                float(review.rating)
-                for review in reviews
-            )
-
-            provider.rating = round(
-                total / count,
-                2
-            )
-
-            provider.rating_count = count
-
-        provider.save()
-
     def review_to_dict(self, review):
         customer = User.find(
             review.customer_id
@@ -104,7 +73,42 @@ class ReviewController(Controller):
             ),
         }
 
+    def update_provider_rating(self, provider_id):
+        """Recalculate provider rating from all reviews."""
+
+        provider = User.find(provider_id)
+
+        if not provider:
+            return
+
+        reviews = Review.where(
+            "service_provider_id",
+            provider_id
+        ).get()
+
+        if not reviews:
+            provider.rating = 0
+            provider.rating_count = 0
+            provider.save()
+            return
+
+        total = sum(
+            float(review.rating)
+            for review in reviews
+        )
+
+        provider.rating = round(
+            total / len(reviews),
+            2
+        )
+
+        provider.rating_count = len(reviews)
+
+        provider.save()
+
     def provider_reviews(self, request: Request):
+        """Get reviews for a service provider."""
+
         provider = User.find(
             request.param("id")
         )
@@ -135,6 +139,8 @@ class ReviewController(Controller):
         }
 
     def store(self, request: Request):
+        """Create a rating/review after completed maintenance."""
+
         customer = request.user()
 
         if not customer:
@@ -206,21 +212,23 @@ class ReviewController(Controller):
         except (ValueError, TypeError):
             return {
                 "success": False,
-                "message": "rating must be an integer from 1 to 5."
+                "message": (
+                    "rating must be an integer from 1 to 5."
+                )
             }, 400
 
         if rating < 1 or rating > 5:
             return {
                 "success": False,
-                "message": "rating must be between 1 and 5."
+                "message": (
+                    "rating must be between 1 and 5."
+                )
             }, 400
 
         review = Review.create({
             "maintenance_record_id": record.id,
             "customer_id": customer.id,
-            "service_provider_id": (
-                record.service_provider_id
-            ),
+            "service_provider_id": record.service_provider_id,
             "rating": rating,
             "review": (
                 review_text.strip()
@@ -229,7 +237,7 @@ class ReviewController(Controller):
             ),
         })
 
-        self.provider_stats(
+        self.update_provider_rating(
             record.service_provider_id
         )
 
@@ -240,6 +248,8 @@ class ReviewController(Controller):
         }, 201
 
     def update(self, request: Request):
+        """Update customer's own review."""
+
         customer = request.user()
 
         if not customer:
@@ -283,13 +293,17 @@ class ReviewController(Controller):
         except (ValueError, TypeError):
             return {
                 "success": False,
-                "message": "rating must be an integer from 1 to 5."
+                "message": (
+                    "rating must be an integer from 1 to 5."
+                )
             }, 400
 
         if rating < 1 or rating > 5:
             return {
                 "success": False,
-                "message": "rating must be between 1 and 5."
+                "message": (
+                    "rating must be between 1 and 5."
+                )
             }, 400
 
         review.rating = rating
@@ -301,7 +315,7 @@ class ReviewController(Controller):
 
         review.save()
 
-        self.provider_stats(
+        self.update_provider_rating(
             review.service_provider_id
         )
 
@@ -312,6 +326,8 @@ class ReviewController(Controller):
         }
 
     def destroy(self, request: Request):
+        """Delete customer's own review."""
+
         customer = request.user()
 
         if not customer:
@@ -343,7 +359,9 @@ class ReviewController(Controller):
 
         review.delete()
 
-        self.provider_stats(provider_id)
+        self.update_provider_rating(
+            provider_id
+        )
 
         return {
             "success": True,

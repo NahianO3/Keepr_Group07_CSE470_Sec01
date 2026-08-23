@@ -87,6 +87,7 @@ class MaintenanceRecordController(Controller):
         if not customer:
             return False
 
+        # Appliance maintenance record
         if record.appliance_id is not None:
             appliance = Appliance.find(record.appliance_id)
 
@@ -98,6 +99,7 @@ class MaintenanceRecordController(Controller):
                 appliance
             )
 
+        # Vehicle maintenance record
         if record.vehicle_id is not None:
             vehicle = Vehicle.find(record.vehicle_id)
 
@@ -161,6 +163,10 @@ class MaintenanceRecordController(Controller):
         appliance_id = request.input("appliance_id")
         vehicle_id = request.input("vehicle_id")
 
+        # -----------------------------------------------------
+        # Filter by appliance
+        # -----------------------------------------------------
+
         if appliance_id:
 
             appliance = Appliance.find(appliance_id)
@@ -188,6 +194,10 @@ class MaintenanceRecordController(Controller):
                 appliance_id
             ).get()
 
+        # -----------------------------------------------------
+        # Filter by vehicle
+        # -----------------------------------------------------
+
         elif vehicle_id:
 
             vehicle = Vehicle.find(vehicle_id)
@@ -214,6 +224,10 @@ class MaintenanceRecordController(Controller):
                 "vehicle_id",
                 vehicle_id
             ).get()
+
+        # -----------------------------------------------------
+        # All customer records
+        # -----------------------------------------------------
 
         else:
 
@@ -310,6 +324,10 @@ class MaintenanceRecordController(Controller):
                 )
             }, 400
 
+        # -----------------------------------------------------
+        # Appliance ownership
+        # -----------------------------------------------------
+
         if appliance_id:
 
             appliance = Appliance.find(appliance_id)
@@ -331,6 +349,10 @@ class MaintenanceRecordController(Controller):
                         "a maintenance record for this appliance."
                     )
                 }, 403
+
+        # -----------------------------------------------------
+        # Vehicle ownership
+        # -----------------------------------------------------
 
         else:
 
@@ -430,6 +452,10 @@ class MaintenanceRecordController(Controller):
                     "message": "Invalid cost."
                 }, 400
 
+        # -----------------------------------------------------
+        # DIY
+        # -----------------------------------------------------
+
         if maintenance_type == "DIY":
 
             service_provider_id = None
@@ -437,6 +463,10 @@ class MaintenanceRecordController(Controller):
             record_status = (
                 status or "Completed"
             )
+
+        # -----------------------------------------------------
+        # MECHANIC
+        # -----------------------------------------------------
 
         else:
 
@@ -1111,11 +1141,10 @@ class MaintenanceRecordController(Controller):
         # -----------------------------------------------------
 
         record.status = "Completed"
-
         record.save()
 
         # -----------------------------------------------------
-        # Module 3 Feature 6:
+        # Feature 6:
         # update provider completed-service count
         # -----------------------------------------------------
 

@@ -5,7 +5,6 @@ from masonite.request import Request
 
 from app.models.Report import Report
 from app.models.MaintenanceRecord import MaintenanceRecord
-from app.models.User import User
 from app.models.Appliance import Appliance
 from app.models.Vehicle import Vehicle
 
@@ -41,6 +40,8 @@ class ReportController(Controller):
         return False
 
     def store(self, request: Request):
+        """Submit a report after completed maintenance."""
+
         customer = request.user()
 
         if not customer:
@@ -90,9 +91,7 @@ class ReportController(Controller):
             }, 400
 
         reason = request.input("reason")
-        description = request.input(
-            "description"
-        )
+        description = request.input("description")
 
         if not reason:
             return {
@@ -120,9 +119,7 @@ class ReportController(Controller):
         report = Report.create({
             "maintenance_record_id": record.id,
             "reporter_id": customer.id,
-            "service_provider_id": (
-                record.service_provider_id
-            ),
+            "service_provider_id": record.service_provider_id,
             "reason": reason.strip(),
             "description": (
                 description.strip()
@@ -140,6 +137,7 @@ class ReportController(Controller):
                 "maintenance_record_id": (
                     report.maintenance_record_id
                 ),
+                "reporter_id": report.reporter_id,
                 "service_provider_id": (
                     report.service_provider_id
                 ),
