@@ -177,6 +177,27 @@ ROUTES = [
         "MaintenanceRecordController@destroy",
     ).middleware("api_auth", "role:customer"),
 
+
+    # =========================================================
+    # Module 3 Feature 3
+    # Customer - Maintenance Before/After Images
+    # =========================================================
+
+    Route.get(
+        "/maintenance-records/@id/images",
+        "MaintenanceImageController@show",
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
+
+    Route.post(
+        "/maintenance-records/@id/images",
+        "MaintenanceImageController@store",
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
     # =========================
     # Service Provider - Requests
     # =========================

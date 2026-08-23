@@ -16,6 +16,7 @@ import {
   ClipboardCheck,
   WalletCards,
   Clock3,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import {
@@ -68,6 +69,11 @@ const menus = {
       to: "/maintenance-history",
       label: "History",
       icon: Wrench,
+    },
+    {
+      to: "/maintenance-images",
+      label: "Before & After",
+      icon: ImageIcon,
     },
     {
       to: "/expenses",
@@ -264,7 +270,8 @@ export default function Sidebar() {
 
           <div>
             <strong>
-              {user?.email || "User"}
+              {user?.email ||
+                "User"}
             </strong>
 
             <span>
