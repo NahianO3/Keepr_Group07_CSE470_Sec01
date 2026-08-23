@@ -17,8 +17,9 @@ ROUTES = [
         "UserController@register",
     ),
 
+    # =========================
     # Authentication
-
+    # =========================
 
     Route.post(
         "/logout",
@@ -105,8 +106,6 @@ ROUTES = [
 
     # =========================
     # Customer - Maintenance Schedules
-    # (shared by Appliances and Vehicles - a schedule is linked to
-    # EITHER an appliance OR a vehicle, never both)
     # =========================
 
     Route.get(
@@ -142,16 +141,16 @@ ROUTES = [
     # =========================
     # Customer - Maintenance Records
     # =========================
+
     Route.get(
-       "/maintenance-records/diy",
-       "MaintenanceRecordController@diy_records",
+        "/maintenance-records/diy",
+        "MaintenanceRecordController@diy_records",
     ).middleware("api_auth", "role:customer"),
 
     Route.get(
-       "/maintenance-records/mechanic",
-       "MaintenanceRecordController@mechanic_records",
+        "/maintenance-records/mechanic",
+        "MaintenanceRecordController@mechanic_records",
     ).middleware("api_auth", "role:customer"),
- 
 
     Route.get(
         "/maintenance-records",
@@ -162,7 +161,7 @@ ROUTES = [
         "/maintenance-records/@id",
         "MaintenanceRecordController@show",
     ).middleware("api_auth", "role:customer"),
- 
+
     Route.post(
         "/maintenance-records",
         "MaintenanceRecordController@store",
@@ -180,6 +179,7 @@ ROUTES = [
 
     # =========================
     # Service Provider
+    # - Feature 5 request management
     # =========================
 
     Route.get(
@@ -214,7 +214,6 @@ ROUTES = [
 
     # =========================
     # Customer - Service Providers
-    # (search & browse verified providers)
     # =========================
 
     Route.get(
@@ -228,8 +227,7 @@ ROUTES = [
     ).middleware("api_auth", "role:customer"),
 
     # =========================
-    # Service Provider - own profile
-    # (fields customers search/filter against)
+    # Service Provider - Own Profile
     # =========================
 
     Route.get(
@@ -243,8 +241,7 @@ ROUTES = [
     ).middleware("api_auth", "role:service_provider"),
 
     # =========================
-    # Service Provider - offered services
-    # (Module 3, Feature 4)
+    # Service Provider - Offered Services
     # =========================
 
     Route.get(
@@ -267,7 +264,51 @@ ROUTES = [
         "ServiceController@destroy",
     ).middleware("api_auth", "role:service_provider"),
 
-    
+    # =========================================================
+    # Module 3 Feature 6
+    # Customer - Post Maintenance Actions
+    # =========================================================
+
+    Route.get(
+        "/bookmarks",
+        "BookmarkController@index",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.post(
+        "/providers/@id/bookmark",
+        "BookmarkController@store",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.delete(
+        "/providers/@id/bookmark",
+        "BookmarkController@destroy",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.get(
+        "/providers/@id/reviews",
+        "ReviewController@provider_reviews",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.post(
+        "/maintenance-records/@id/review",
+        "ReviewController@store",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.put(
+        "/reviews/@id",
+        "ReviewController@update",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.delete(
+        "/reviews/@id",
+        "ReviewController@destroy",
+    ).middleware("api_auth", "role:customer"),
+
+    Route.post(
+        "/maintenance-records/@id/report",
+        "ReportController@store",
+    ).middleware("api_auth", "role:customer"),
+
     # =========================
     # Administrator
     # =========================
