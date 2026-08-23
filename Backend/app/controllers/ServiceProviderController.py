@@ -6,15 +6,26 @@ Module 3 - Feature 1:
     such as ratings, pricing, availability, service area, and
     completed service count.
 
-This controller also lets a logged-in service provider maintain
-the profile fields that customers search and filter against
-(service category, service area, bio, pricing, availability).
+Module 3 - Feature 4:
+    Service providers can manage their professional profiles,
+    expertise, service categories, pricing, availability
+    schedules, service locations, and offered services.
+
+This controller lets a logged-in service provider maintain the
+profile fields that customers search and filter against (service
+category, service area, bio, pricing, availability), as well as
+the additional professional-profile fields covered by Feature 4
+(expertise and a human-readable availability schedule). The list
+of offered services is managed separately in ServiceController,
+but is included here (read-only) so a provider's profile shows
+everything in one place.
 """
 
 from masonite.controllers import Controller
 from masonite.request import Request
 
 from app.models.User import User
+from app.models.Service import Service
 
 
 class ServiceProviderController(Controller):
@@ -26,6 +37,11 @@ class ServiceProviderController(Controller):
     def provider_to_dict(self, provider):
         """Convert a service provider user to public, JSON-safe data."""
 
+        services = Service.where(
+            "service_provider_id",
+            provider.id
+        ).get()
+
         return {
             "id": provider.id,
             "full_name": provider.full_name,
@@ -34,8 +50,12 @@ class ServiceProviderController(Controller):
             "address": provider.address,
             "service_category": provider.service_category,
             "service_area": provider.service_area,
+            "expertise": provider.expertise,
             "bio": provider.bio,
             "hourly_rate": provider.hourly_rate,
+            "availability_schedule": (
+                provider.availability_schedule
+            ),
             "rating": provider.rating,
             "rating_count": provider.rating_count,
             "completed_service_count": (
@@ -43,6 +63,21 @@ class ServiceProviderController(Controller):
             ),
             "is_available": bool(provider.is_available),
             "account_status": provider.account_status,
+            "services": [
+                {
+                    "id": service.id,
+                    "service_name": service.service_name,
+                    "category": service.category,
+                    "description": service.description,
+                    "estimated_price": (
+                        service.estimated_price
+                    ),
+                    "estimated_duration_hours": (
+                        service.estimated_duration_hours
+                    ),
+                }
+                for service in services
+            ],
         }
 
     def _to_float(self, value):
@@ -302,7 +337,16 @@ class ServiceProviderController(Controller):
             "service_area", provider.service_area
         )
 
+        expertise = request.input(
+            "expertise", provider.expertise
+        )
+
         bio = request.input("bio", provider.bio)
+
+        availability_schedule = request.input(
+            "availability_schedule",
+            provider.availability_schedule
+        )
 
         hourly_rate = request.input(
             "hourly_rate", provider.hourly_rate
@@ -326,7 +370,9 @@ class ServiceProviderController(Controller):
 
         provider.service_category = service_category
         provider.service_area = service_area
+        provider.expertise = expertise
         provider.bio = bio
+        provider.availability_schedule = availability_schedule
         provider.hourly_rate = hourly_rate
         provider.is_available = self._to_bool(is_available)
 

@@ -3485,8 +3485,6 @@ a {
 
 /* =========================
    Vehicle mileage update form
-   Append the contents of this file to the end of
-   src/styles/index.css
 ========================= */
 
 .mileage-update-form {
@@ -4268,4 +4266,29 @@ a {
 
 .provider-card-meta strong {
   color: var(--text);
+}
+
+/* =========================
+   Provider "My Services" 
+========================= */
+
+.profile-services-card {
+  grid-column: 1 / -1;
+}
+
+.profile-services-card .section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-bottom: 16px;
+}
+
+.profile-services-card .schedule-content p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
