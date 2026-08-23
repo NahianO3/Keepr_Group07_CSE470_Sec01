@@ -41,6 +41,8 @@ class BookmarkController(Controller):
         return False
 
     def store(self, request: Request):
+        """Bookmark a provider after completed service."""
+
         customer = request.user()
 
         if not customer:
@@ -120,6 +122,7 @@ class BookmarkController(Controller):
             "message": "Service provider bookmarked.",
             "data": {
                 "id": bookmark.id,
+                "customer_id": bookmark.customer_id,
                 "service_provider_id": (
                     bookmark.service_provider_id
                 ),
@@ -127,6 +130,8 @@ class BookmarkController(Controller):
         }, 201
 
     def destroy(self, request: Request):
+        """Remove a provider bookmark."""
+
         customer = request.user()
 
         if not customer:
@@ -159,6 +164,8 @@ class BookmarkController(Controller):
         }
 
     def index(self, request: Request):
+        """List providers bookmarked by customer."""
+
         customer = request.user()
 
         if not customer:
