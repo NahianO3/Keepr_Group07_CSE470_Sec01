@@ -4,10 +4,20 @@ import {
   Search,
   UserCheck,
   UserX,
+  Pencil,
+  ShieldCheck,
 } from "lucide-react";
 
 import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
+
+
+const emptyProfile = {
+  full_name: "",
+  phone: "",
+  address: "",
+};
+
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -22,7 +32,17 @@ export default function AdminUsers() {
   const [actionLoading, setActionLoading] =
     useState(null);
 
+  const [editingUser, setEditingUser] =
+    useState(null);
+
+  const [profileForm, setProfileForm] =
+    useState(emptyProfile);
+
+  const [profileSaving, setProfileSaving] =
+    useState(false);
+
   const [error, setError] = useState("");
+
 
   const loadUsers = async () => {
     try {
@@ -45,9 +65,11 @@ export default function AdminUsers() {
     }
   };
 
+
   useEffect(() => {
     loadUsers();
   }, []);
+
 
   const filteredUsers = useMemo(() => {
     const query =
@@ -60,7 +82,8 @@ export default function AdminUsers() {
 
       const matchesStatus =
         statusFilter === "All" ||
-        user.account_status === statusFilter;
+        user.account_status ===
+          statusFilter;
 
       const searchable = [
         user.full_name,
@@ -75,7 +98,8 @@ export default function AdminUsers() {
       return (
         matchesRole &&
         matchesStatus &&
-        (!query || searchable.includes(query))
+        (!query ||
+          searchable.includes(query))
       );
     });
   }, [
@@ -85,22 +109,25 @@ export default function AdminUsers() {
     statusFilter,
   ]);
 
-  const updateStatus = async (user) => {
-    const nextStatus =
-      user.account_status === "active"
-        ? "suspended"
-        : "active";
 
-    const action =
+  const updateStatus = async (
+    user,
+    nextStatus
+  ) => {
+    const actionText =
       nextStatus === "suspended"
-        ? "suspend"
-        : "activate";
+        ? "Suspend"
+        : nextStatus === "pending"
+        ? "Mark as pending verification"
+        : "Activate";
 
-    const confirmed = window.confirm(
-      `${action === "suspend" ? "Suspend" : "Activate"} ${
-        user.full_name || user.email
-      }?`
-    );
+    const confirmed =
+      window.confirm(
+        `${actionText} ${
+          user.full_name ||
+          user.email
+        }?`
+      );
 
     if (!confirmed) return;
 
@@ -111,7 +138,8 @@ export default function AdminUsers() {
       await api.put(
         `/admin/users/${user.id}/status`,
         {
-          account_status: nextStatus,
+          account_status:
+            nextStatus,
         }
       );
 
@@ -126,6 +154,97 @@ export default function AdminUsers() {
     }
   };
 
+
+  const verifyUser = async (user) => {
+    const confirmed =
+      window.confirm(
+        `Verify ${
+          user.full_name ||
+          user.email
+        }?`
+      );
+
+    if (!confirmed) return;
+
+    try {
+      setActionLoading(user.id);
+      setError("");
+
+      await api.put(
+        `/admin/users/${user.id}/verify`
+      );
+
+      await loadUsers();
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to verify account."
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+
+  const openEditProfile = (user) => {
+    setEditingUser(user);
+
+    setProfileForm({
+      full_name:
+        user.full_name || "",
+      phone: user.phone || "",
+      address:
+        user.address || "",
+    });
+  };
+
+
+  const closeEditProfile = () => {
+    if (profileSaving) return;
+
+    setEditingUser(null);
+    setProfileForm(
+      emptyProfile
+    );
+  };
+
+
+  const saveProfile = async (
+    event
+  ) => {
+    event.preventDefault();
+
+    if (!editingUser) return;
+
+    try {
+      setProfileSaving(true);
+      setError("");
+
+      await api.put(
+        `/admin/users/${editingUser.id}/profile`,
+        {
+          full_name:
+            profileForm.full_name.trim(),
+          phone:
+            profileForm.phone.trim(),
+          address:
+            profileForm.address.trim(),
+        }
+      );
+
+      closeEditProfile();
+      await loadUsers();
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to update profile."
+      );
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+
   return (
     <div className="dashboard-layout">
       <Sidebar />
@@ -137,11 +256,14 @@ export default function AdminUsers() {
               ADMINISTRATION
             </span>
 
-            <h1>User management</h1>
+            <h1>
+              User management
+            </h1>
 
             <p>
-              Manage customer and service-provider
-              account statuses.
+              Verify, activate, suspend,
+              and manage customer and
+              service-provider accounts.
             </p>
           </div>
         </header>
@@ -161,7 +283,9 @@ export default function AdminUsers() {
               placeholder="Search users..."
               value={search}
               onChange={(event) =>
-                setSearch(event.target.value)
+                setSearch(
+                  event.target.value
+                )
               }
             />
           </div>
@@ -169,16 +293,23 @@ export default function AdminUsers() {
           <select
             value={roleFilter}
             onChange={(event) =>
-              setRoleFilter(event.target.value)
+              setRoleFilter(
+                event.target.value
+              )
             }
           >
-            <option value="All">All roles</option>
+            <option value="All">
+              All roles
+            </option>
+
             <option value="customer">
               Customer
             </option>
+
             <option value="service_provider">
               Service Provider
             </option>
+
             <option value="admin">
               Administrator
             </option>
@@ -187,15 +318,23 @@ export default function AdminUsers() {
           <select
             value={statusFilter}
             onChange={(event) =>
-              setStatusFilter(event.target.value)
+              setStatusFilter(
+                event.target.value
+              )
             }
           >
             <option value="All">
               All statuses
             </option>
+
+            <option value="pending">
+              Pending
+            </option>
+
             <option value="active">
               Active
             </option>
+
             <option value="suspended">
               Suspended
             </option>
@@ -206,14 +345,18 @@ export default function AdminUsers() {
           <div className="dashboard-loading">
             Loading users...
           </div>
-        ) : filteredUsers.length === 0 ? (
+        ) : filteredUsers.length ===
+          0 ? (
           <div className="empty-card">
             <UsersIcon size={30} />
 
-            <h3>No users found</h3>
+            <h3>
+              No users found
+            </h3>
 
             <p>
-              No accounts match your current filters.
+              No accounts match your
+              current filters.
             </p>
           </div>
         ) : (
@@ -225,90 +368,333 @@ export default function AdminUsers() {
                     <th>User</th>
                     <th>Role</th>
                     <th>Status</th>
-                    <th>Action</th>
+                    <th>Verification</th>
+                    <th>Profile</th>
+                    <th>Account</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredUsers.map((user) => (
-                    <tr key={user.id}>
-                      <td>
-                        <div className="admin-user-cell">
-                          <div className="admin-user-avatar">
-                            {user.full_name
-                              ?.charAt(0)
-                              ?.toUpperCase() || "U"}
+                  {filteredUsers.map(
+                    (user) => (
+                      <tr
+                        key={user.id}
+                      >
+                        <td>
+                          <div className="admin-user-cell">
+                            <div className="admin-user-avatar">
+                              {user.full_name
+                                ?.charAt(0)
+                                ?.toUpperCase() ||
+                                "U"}
+                            </div>
+
+                            <div>
+                              <strong>
+                                {user.full_name ||
+                                  "Unnamed user"}
+                              </strong>
+
+                              <span>
+                                {user.email}
+                              </span>
+                            </div>
                           </div>
+                        </td>
 
-                          <div>
-                            <strong>
-                              {user.full_name ||
-                                "Unnamed user"}
-                            </strong>
+                        <td>
+                          <span className="status-badge">
+                            {user.role}
+                          </span>
+                        </td>
 
+                        <td>
+                          <span
+                            className={`status-badge ${
+                              user.account_status ===
+                              "active"
+                                ? "status-active"
+                                : user.account_status ===
+                                  "suspended"
+                                ? "status-suspended"
+                                : "status-pending"
+                            }`}
+                          >
+                            {user.account_status ||
+                              "—"}
+                          </span>
+                        </td>
+
+                        <td>
+                          {user.role ===
+                            "customer" &&
+                          user.account_status ===
+                            "pending" ? (
+                            <button
+                              type="button"
+                              className="admin-action-button admin-action-success"
+                              onClick={() =>
+                                verifyUser(
+                                  user
+                                )
+                              }
+                              disabled={
+                                actionLoading ===
+                                user.id
+                              }
+                            >
+                              <ShieldCheck
+                                size={15}
+                              />
+
+                              Verify
+                            </button>
+                          ) : user.role ===
+                              "service_provider" &&
+                            user.account_status ===
+                              "pending" ? (
                             <span>
-                              {user.email}
+                              Provider approval
+                              required
                             </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td>
-                        <span className="status-badge">
-                          {user.role}
-                        </span>
-                      </td>
-
-                      <td>
-                        <span
-                          className={`status-badge ${
-                            user.account_status ===
-                            "active"
-                              ? "status-active"
-                              : "status-suspended"
-                          }`}
-                        >
-                          {user.account_status ||
-                            "—"}
-                        </span>
-                      </td>
-
-                      <td>
-                        <button
-                          type="button"
-                          className={`admin-action-button ${
-                            user.account_status ===
-                            "active"
-                              ? "admin-action-danger"
-                              : "admin-action-success"
-                          }`}
-                          onClick={() =>
-                            updateStatus(user)
-                          }
-                          disabled={
-                            actionLoading === user.id
-                          }
-                        >
-                          {user.account_status ===
-                          "active" ? (
-                            <>
-                              <UserX size={15} />
-                              Suspend
-                            </>
                           ) : (
-                            <>
-                              <UserCheck size={15} />
-                              Activate
-                            </>
+                            <span>
+                              {user.account_status ===
+                              "active"
+                                ? "Verified"
+                                : "—"}
+                            </span>
                           )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+
+                        <td>
+                          <button
+                            type="button"
+                            className="admin-action-button"
+                            onClick={() =>
+                              openEditProfile(
+                                user
+                              )
+                            }
+                          >
+                            <Pencil
+                              size={15}
+                            />
+
+                            Edit
+                          </button>
+                        </td>
+
+                        <td>
+                          {user.role !==
+                            "admin" && (
+                            <div className="admin-table-actions">
+                              {user.account_status ===
+                              "active" ? (
+                                <button
+                                  type="button"
+                                  className="admin-action-button admin-action-danger"
+                                  onClick={() =>
+                                    updateStatus(
+                                      user,
+                                      "suspended"
+                                    )
+                                  }
+                                  disabled={
+                                    actionLoading ===
+                                    user.id
+                                  }
+                                >
+                                  <UserX
+                                    size={15}
+                                  />
+
+                                  Suspend
+                                </button>
+                              ) : user.account_status ===
+                                "suspended" ? (
+                                <button
+                                  type="button"
+                                  className="admin-action-button admin-action-success"
+                                  onClick={() =>
+                                    updateStatus(
+                                      user,
+                                      "active"
+                                    )
+                                  }
+                                  disabled={
+                                    actionLoading ===
+                                    user.id
+                                  }
+                                >
+                                  <UserCheck
+                                    size={15}
+                                  />
+
+                                  Activate
+                                </button>
+                              ) : user.role ===
+                                "customer" ? (
+                                <button
+                                  type="button"
+                                  className="admin-action-button"
+                                  onClick={() =>
+                                    verifyUser(
+                                      user
+                                    )
+                                  }
+                                  disabled={
+                                    actionLoading ===
+                                    user.id
+                                  }
+                                >
+                                  <UserCheck
+                                    size={15}
+                                  />
+
+                                  Verify
+                                </button>
+                              ) : null}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
           </section>
+        )}
+
+        {editingUser && (
+          <div className="admin-modal-backdrop">
+            <div className="admin-modal">
+              <header className="admin-modal-header">
+                <div>
+                  <span className="eyebrow">
+                    PROFILE MANAGEMENT
+                  </span>
+
+                  <h2>
+                    Edit user profile
+                  </h2>
+
+                  <p>
+                    {editingUser.email}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="admin-action-button"
+                  onClick={
+                    closeEditProfile
+                  }
+                  disabled={
+                    profileSaving
+                  }
+                >
+                  Close
+                </button>
+              </header>
+
+              <form
+                className="auth-form"
+                onSubmit={
+                  saveProfile
+                }
+              >
+                <div className="form-field">
+                  <label>
+                    Full name
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      profileForm.full_name
+                    }
+                    onChange={(event) =>
+                      setProfileForm(
+                        (current) => ({
+                          ...current,
+                          full_name:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    disabled={
+                      profileSaving
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label>
+                    Phone
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      profileForm.phone
+                    }
+                    onChange={(event) =>
+                      setProfileForm(
+                        (current) => ({
+                          ...current,
+                          phone:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    disabled={
+                      profileSaving
+                    }
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label>
+                    Address
+                  </label>
+
+                  <textarea
+                    value={
+                      profileForm.address
+                    }
+                    onChange={(event) =>
+                      setProfileForm(
+                        (current) => ({
+                          ...current,
+                          address:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    disabled={
+                      profileSaving
+                    }
+                    rows={4}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="dashboard-primary-button"
+                  disabled={
+                    profileSaving
+                  }
+                >
+                  {profileSaving
+                    ? "Saving..."
+                    : "Save profile"}
+                </button>
+              </form>
+            </div>
+          </div>
         )}
       </main>
     </div>
