@@ -205,32 +205,50 @@ ROUTES = [
     Route.get(
         "/maintenance-requests",
         "MaintenanceRecordController@provider_requests",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     Route.post(
         "/maintenance-records/@id/accept",
         "MaintenanceRecordController@accept",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     Route.post(
         "/maintenance-records/@id/reject",
         "MaintenanceRecordController@reject",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     Route.put(
         "/maintenance-records/@id/reschedule",
         "MaintenanceRecordController@reschedule",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     Route.put(
         "/maintenance-records/@id/progress",
         "MaintenanceRecordController@update_progress",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     Route.post(
         "/maintenance-records/@id/complete",
         "MaintenanceRecordController@complete",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     # =========================
     # Customer - Service Providers
@@ -239,12 +257,18 @@ ROUTES = [
     Route.get(
         "/providers",
         "ServiceProviderController@index",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
     Route.get(
         "/providers/@id",
         "ServiceProviderController@show",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
     # =========================
     # Service Provider - Profile
@@ -253,12 +277,18 @@ ROUTES = [
     Route.get(
         "/provider/profile",
         "ServiceProviderController@my_profile",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     Route.put(
         "/provider/profile",
         "ServiceProviderController@update_profile",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     # =========================
     # Service Provider - Services
@@ -267,22 +297,34 @@ ROUTES = [
     Route.get(
         "/provider/services",
         "ServiceController@index",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     Route.post(
         "/provider/services",
         "ServiceController@store",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     Route.put(
         "/provider/services/@id",
         "ServiceController@update",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     Route.delete(
         "/provider/services/@id",
         "ServiceController@destroy",
-    ).middleware("api_auth", "role:service_provider"),
+    ).middleware(
+        "api_auth",
+        "role:service_provider",
+    ),
 
     # =========================================================
     # Module 3 Feature 6
@@ -292,17 +334,26 @@ ROUTES = [
     Route.get(
         "/bookmarks",
         "BookmarkController@index",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
     Route.post(
         "/providers/@id/bookmark",
         "BookmarkController@store",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
     Route.delete(
         "/providers/@id/bookmark",
         "BookmarkController@destroy",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
     # =========================================================
     # Module 3 Feature 6
@@ -312,22 +363,34 @@ ROUTES = [
     Route.get(
         "/providers/@id/reviews",
         "ReviewController@provider_reviews",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
     Route.post(
         "/maintenance-records/@id/review",
         "ReviewController@store",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
     Route.put(
         "/reviews/@id",
         "ReviewController@update",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
     Route.delete(
         "/reviews/@id",
         "ReviewController@destroy",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
     # =========================================================
     # Module 3 Feature 6
@@ -337,31 +400,59 @@ ROUTES = [
     Route.post(
         "/maintenance-records/@id/report",
         "ReportController@store",
-    ).middleware("api_auth", "role:customer"),
+    ).middleware(
+        "api_auth",
+        "role:customer",
+    ),
 
-    # =========================
+    # =========================================================
     # Administrator
-    # =========================
+    # =========================================================
 
     Route.get(
         "/admin/users",
         "AdminController@users",
-    ).middleware("api_auth", "role:admin"),
+    ).middleware(
+        "api_auth",
+        "role:admin",
+    ),
 
     Route.put(
         "/admin/users/@id/status",
         "AdminController@update_user_status",
-    ).middleware("api_auth", "role:admin"),
+    ).middleware(
+        "api_auth",
+        "role:admin",
+    ),
 
     Route.put(
         "/admin/providers/@id/approve",
         "AdminController@approve_provider",
-    ).middleware("api_auth", "role:admin"),
+    ).middleware(
+        "api_auth",
+        "role:admin",
+    ),
+
+    # =========================================================
+    # Module 4 Feature 4
+    # Administrator - Booking Management
+    # =========================================================
 
     Route.get(
         "/admin/maintenance-records",
         "AdminController@maintenance_records",
-    ).middleware("api_auth", "role:admin"),
+    ).middleware(
+        "api_auth",
+        "role:admin",
+    ),
+
+    Route.put(
+        "/admin/maintenance-records/@id/status",
+        "AdminController@update_maintenance_status",
+    ).middleware(
+        "api_auth",
+        "role:admin",
+    ),
 
     # =========================================================
     # Module 4 Feature 2
@@ -371,12 +462,18 @@ ROUTES = [
     Route.get(
         "/admin/reviews",
         "AdminController@reviews",
-    ).middleware("api_auth", "role:admin"),
+    ).middleware(
+        "api_auth",
+        "role:admin",
+    ),
 
     Route.put(
         "/admin/reviews/@id/status",
         "AdminController@update_review_status",
-    ).middleware("api_auth", "role:admin"),
+    ).middleware(
+        "api_auth",
+        "role:admin",
+    ),
 
     # =========================================================
     # Module 4 Feature 2
@@ -386,10 +483,16 @@ ROUTES = [
     Route.get(
         "/admin/reports",
         "AdminController@reports",
-    ).middleware("api_auth", "role:admin"),
+    ).middleware(
+        "api_auth",
+        "role:admin",
+    ),
 
     Route.put(
         "/admin/reports/@id/status",
         "AdminController@update_report_status",
-    ).middleware("api_auth", "role:admin"),
+    ).middleware(
+        "api_auth",
+        "role:admin",
+    ),
 ]

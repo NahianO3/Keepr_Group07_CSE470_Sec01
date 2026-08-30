@@ -11,6 +11,10 @@ from app.models.Report import Report
 
 class AdminController(Controller):
 
+    # =========================================================
+    # USER MANAGEMENT
+    # =========================================================
+
     def users(self, request: Request):
         users = User.all()
 
@@ -55,6 +59,11 @@ class AdminController(Controller):
             "message": "User status updated successfully.",
         }
 
+    # =========================================================
+    # PROVIDER APPROVAL
+    # Module 4 - Feature 1
+    # =========================================================
+
     def approve_provider(self, request: Request):
         user = User.find(request.param("id"))
 
@@ -86,7 +95,16 @@ class AdminController(Controller):
             "message": "Service provider approved successfully.",
         }
 
+    # =========================================================
+    # MAINTENANCE / BOOKING MANAGEMENT
+    # Module 4 - Feature 4
+    # =========================================================
+
     def maintenance_records(self, request: Request):
+        """
+        Return all maintenance records for administrator viewing.
+        """
+
         records = MaintenanceRecord.all()
 
         return {
@@ -95,7 +113,9 @@ class AdminController(Controller):
                 {
                     "id": record.id,
                     "appliance_id": record.appliance_id,
-                    "service_provider_id": record.service_provider_id,
+                    "service_provider_id": (
+                        record.service_provider_id
+                    ),
                     "maintenance_date": (
                         record.maintenance_date.isoformat()
                         if hasattr(
@@ -113,6 +133,59 @@ class AdminController(Controller):
             ],
         }
 
+    def update_maintenance_status(self, request: Request):
+        """
+        Allow an administrator to change the status of a
+        maintenance booking.
+        """
+
+        record = MaintenanceRecord.find(
+            request.param("id")
+        )
+
+        if not record:
+            return {
+                "success": False,
+                "message": "Maintenance record not found.",
+            }, 404
+
+        status = request.input("status")
+
+        allowed_statuses = [
+            "Pending",
+            "Accepted",
+            "In Progress",
+            "Rescheduled",
+            "Completed",
+            "Rejected",
+            "Cancelled",
+        ]
+
+        if status not in allowed_statuses:
+            return {
+                "success": False,
+                "message": "Invalid maintenance status.",
+            }, 400
+
+        record.status = status
+        record.save()
+
+        return {
+            "success": True,
+            "message": (
+                "Maintenance booking status updated successfully."
+            ),
+            "data": {
+                "id": record.id,
+                "status": record.status,
+            },
+        }
+
+    # =========================================================
+    # REVIEW MODERATION
+    # Module 4 - Feature 2
+    # =========================================================
+
     def reviews(self, request: Request):
         reviews = Review.all()
 
@@ -120,6 +193,7 @@ class AdminController(Controller):
 
         for review in reviews:
             customer = User.find(review.customer_id)
+
             provider = User.find(
                 review.service_provider_id
             )
@@ -191,6 +265,8 @@ class AdminController(Controller):
         )
         review.save()
 
+        # Recalculate the provider's public rating using
+        # visible reviews only.
         reviews = Review.where(
             "service_provider_id",
             review.service_provider_id
@@ -214,10 +290,10 @@ class AdminController(Controller):
                     total / len(reviews),
                     2
                 )
+
                 provider.rating_count = len(
                     reviews
                 )
-
             else:
                 provider.rating = 0
                 provider.rating_count = 0
@@ -230,6 +306,11 @@ class AdminController(Controller):
                 "Review moderation status updated successfully."
             ),
         }
+
+    # =========================================================
+    # REPORT MODERATION
+    # Module 4 - Feature 2
+    # =========================================================
 
     def reports(self, request: Request):
         reports = Report.all()
@@ -294,6 +375,7 @@ class AdminController(Controller):
             }, 404
 
         status = request.input("status")
+
         resolution_note = request.input(
             "resolution_note"
         )
