@@ -28,6 +28,7 @@ class ApiAuthMiddleware(Middleware):
                 env("JWT_SECRET"),
                 algorithms=["HS512"]
             )
+
         except Exception:
             return response.json(
                 {
@@ -59,7 +60,35 @@ class ApiAuthMiddleware(Middleware):
                 status=401
             )
 
+        # Service providers must be approved before they
+        # can access protected API functionality.
+        if (
+            user.role == "service_provider"
+            and user.account_status == "pending"
+        ):
+            return response.json(
+                {
+                    "success": False,
+                    "message": (
+                        "Your service provider account is "
+                        "awaiting administrator approval."
+                    )
+                },
+                status=403
+            )
+
+        # Suspended accounts cannot access protected API functionality.
+        if user.account_status == "suspended":
+            return response.json(
+                {
+                    "success": False,
+                    "message": "Your account has been suspended."
+                },
+                status=403
+            )
+
         request.set_user(user)
+
         return request
 
     def after(self, request, response):

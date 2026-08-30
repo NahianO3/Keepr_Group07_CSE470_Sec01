@@ -28,6 +28,11 @@ class CreateMaintenanceRecordsTable(Migration):
                 "maintenance_date"
             )
 
+            table.time(
+                "maintenance_time"
+            ).nullable()
+
+            # DIY or Mechanic
             table.string(
                 "maintenance_type"
             )
@@ -48,19 +53,31 @@ class CreateMaintenanceRecordsTable(Migration):
                 "appliance_id"
             ).references(
                 "id"
-            ).on("appliances").on_delete("cascade")
+            ).on(
+                "appliances"
+            ).on_delete(
+                "cascade"
+            )
 
             table.foreign(
                 "vehicle_id"
             ).references(
                 "id"
-            ).on("vehicles").on_delete("cascade")
+            ).on(
+                "vehicles"
+            ).on_delete(
+                "cascade"
+            )
 
             table.foreign(
                 "service_provider_id"
             ).references(
                 "id"
-            ).on("users").on_delete("set null")
+            ).on(
+                "users"
+            ).on_delete(
+                "set null"
+            )
 
             table.timestamps()
 
