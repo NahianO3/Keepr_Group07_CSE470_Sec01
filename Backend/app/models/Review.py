@@ -12,6 +12,7 @@ class Review(Model):
         "service_provider_id",
         "rating",
         "review",
+        "moderation_status",
     ]
 
     @belongs_to(

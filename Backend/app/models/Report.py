@@ -13,6 +13,7 @@ class Report(Model):
         "reason",
         "description",
         "status",
+        "resolution_note",
     ]
 
     @belongs_to(

@@ -28,6 +28,8 @@ import AdminUsers from "./pages/admin/Users";
 import AdminProviders from "./pages/admin/Providers";
 import ProviderApproval from "./pages/admin/ProviderApproval";
 import AdminMaintenanceRecords from "./pages/admin/MaintenanceRecords";
+import AdminReviews from "./pages/admin/Reviews";
+import AdminReports from "./pages/admin/Reports";
 
 import RoleRoute from "./routes/RoleRoute";
 
@@ -299,6 +301,28 @@ export default function App() {
         element={
           <AdminRoute>
             <AdminMaintenanceRecords />
+          </AdminRoute>
+        }
+      />
+
+      {/* =========================
+          Module 4 Feature 2
+      ========================= */}
+
+      <Route
+        path="/admin/reviews"
+        element={
+          <AdminRoute>
+            <AdminReviews />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/reports"
+        element={
+          <AdminRoute>
+            <AdminReports />
           </AdminRoute>
         }
       />

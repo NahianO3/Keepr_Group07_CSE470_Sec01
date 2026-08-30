@@ -177,7 +177,6 @@ ROUTES = [
         "MaintenanceRecordController@destroy",
     ).middleware("api_auth", "role:customer"),
 
-
     # =========================================================
     # Module 3 Feature 3
     # Customer - Maintenance Before/After Images
@@ -362,5 +361,35 @@ ROUTES = [
     Route.get(
         "/admin/maintenance-records",
         "AdminController@maintenance_records",
+    ).middleware("api_auth", "role:admin"),
+
+    # =========================================================
+    # Module 4 Feature 2
+    # Administrator - Review Moderation
+    # =========================================================
+
+    Route.get(
+        "/admin/reviews",
+        "AdminController@reviews",
+    ).middleware("api_auth", "role:admin"),
+
+    Route.put(
+        "/admin/reviews/@id/status",
+        "AdminController@update_review_status",
+    ).middleware("api_auth", "role:admin"),
+
+    # =========================================================
+    # Module 4 Feature 2
+    # Administrator - Report Moderation
+    # =========================================================
+
+    Route.get(
+        "/admin/reports",
+        "AdminController@reports",
+    ).middleware("api_auth", "role:admin"),
+
+    Route.put(
+        "/admin/reports/@id/status",
+        "AdminController@update_report_status",
     ).middleware("api_auth", "role:admin"),
 ]

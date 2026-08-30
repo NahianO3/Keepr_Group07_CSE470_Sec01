@@ -61,6 +61,9 @@ class ReviewController(Controller):
             ),
             "rating": review.rating,
             "review": review.review,
+            "moderation_status": (
+                review.moderation_status
+            ),
             "created_at": (
                 review.created_at.isoformat()
                 if review.created_at
@@ -74,7 +77,7 @@ class ReviewController(Controller):
         }
 
     def update_provider_rating(self, provider_id):
-        """Recalculate provider rating from all reviews."""
+        """Recalculate provider rating from visible reviews."""
 
         provider = User.find(provider_id)
 
@@ -84,6 +87,9 @@ class ReviewController(Controller):
         reviews = Review.where(
             "service_provider_id",
             provider_id
+        ).where(
+            "moderation_status",
+            "visible"
         ).get()
 
         if not reviews:
@@ -107,7 +113,7 @@ class ReviewController(Controller):
         provider.save()
 
     def provider_reviews(self, request: Request):
-        """Get reviews for a service provider."""
+        """Get visible reviews for a service provider."""
 
         provider = User.find(
             request.param("id")
@@ -128,6 +134,9 @@ class ReviewController(Controller):
         reviews = Review.where(
             "service_provider_id",
             provider.id
+        ).where(
+            "moderation_status",
+            "visible"
         ).get()
 
         return {
@@ -235,6 +244,7 @@ class ReviewController(Controller):
                 if review_text
                 else None
             ),
+            "moderation_status": "visible",
         })
 
         self.update_provider_rating(

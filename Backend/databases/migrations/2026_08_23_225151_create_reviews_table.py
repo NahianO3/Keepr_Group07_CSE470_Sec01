@@ -25,6 +25,10 @@ class CreateReviewsTable(Migration):
 
             table.text("review").nullable()
 
+            table.string(
+                "moderation_status"
+            ).default("visible")
+
             table.foreign(
                 "maintenance_record_id"
             ).references(

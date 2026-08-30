@@ -17,6 +17,8 @@ import {
   WalletCards,
   Clock3,
   Image as ImageIcon,
+  Star,
+  Flag,
 } from "lucide-react";
 
 import {
@@ -125,6 +127,16 @@ const menus = {
       to: "/admin/provider-approval",
       label: "Provider Approval",
       icon: ShieldCheck,
+    },
+    {
+      to: "/admin/reviews",
+      label: "Review Moderation",
+      icon: Star,
+    },
+    {
+      to: "/admin/reports",
+      label: "Reports",
+      icon: Flag,
     },
     {
       to: "/admin/maintenance-records",

@@ -29,6 +29,10 @@ class CreateReportsTable(Migration):
                 "status"
             ).default("Pending")
 
+            table.text(
+                "resolution_note"
+            ).nullable()
+
             table.foreign(
                 "maintenance_record_id"
             ).references(

@@ -127,6 +127,7 @@ class ReportController(Controller):
                 else None
             ),
             "status": "Pending",
+            "resolution_note": None,
         })
 
         return {
@@ -144,5 +145,8 @@ class ReportController(Controller):
                 "reason": report.reason,
                 "description": report.description,
                 "status": report.status,
+                "resolution_note": (
+                    report.resolution_note
+                ),
             }
         }, 201
