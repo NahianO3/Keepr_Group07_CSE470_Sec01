@@ -11,6 +11,7 @@ class MaintenanceRecord(Model):
         "vehicle_id",
         "service_provider_id",
         "maintenance_date",
+        "maintenance_time",
         "maintenance_type",
         "work_performed",
         "cost",

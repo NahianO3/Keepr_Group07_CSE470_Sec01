@@ -1,4 +1,8 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -17,6 +21,7 @@ import MaintenanceHistory from "./pages/customer/MaintenanceHistory";
 import MaintenanceImages from "./pages/customer/MaintenanceImages";
 import Reminders from "./pages/customer/Reminders";
 import Expenses from "./pages/customer/Expenses";
+import BookMaintenance from "./pages/customer/BookMaintenance";
 
 import ProviderDashboard from "./pages/provider/Dashboard";
 import ProviderRequests from "./pages/provider/Requests";
@@ -33,35 +38,46 @@ import AdminReports from "./pages/admin/Reports";
 
 import RoleRoute from "./routes/RoleRoute";
 
+
 function CustomerRoute({ children }) {
   return (
-    <RoleRoute allowedRoles={["customer"]}>
-      {children}
-    </RoleRoute>
-  );
-}
-
-function ProviderRoute({ children }) {
-  return (
     <RoleRoute
-      allowedRoles={["service_provider"]}
+      allowedRoles={["customer"]}
     >
       {children}
     </RoleRoute>
   );
 }
 
-function AdminRoute({ children }) {
+
+function ProviderRoute({ children }) {
   return (
-    <RoleRoute allowedRoles={["admin"]}>
+    <RoleRoute
+      allowedRoles={[
+        "service_provider",
+      ]}
+    >
       {children}
     </RoleRoute>
   );
 }
 
+
+function AdminRoute({ children }) {
+  return (
+    <RoleRoute
+      allowedRoles={["admin"]}
+    >
+      {children}
+    </RoleRoute>
+  );
+}
+
+
 export default function App() {
   return (
     <Routes>
+
       {/* =========================
           ROOT
       ========================= */}
@@ -75,6 +91,7 @@ export default function App() {
           />
         }
       />
+
 
       {/* =========================
           AUTH
@@ -103,6 +120,7 @@ export default function App() {
           <ResetPassword />
         }
       />
+
 
       {/* =========================
           CUSTOMER
@@ -171,6 +189,20 @@ export default function App() {
         }
       />
 
+      {/* =========================
+          Module 3 Feature 2
+          Customer - Booking
+      ========================= */}
+
+      <Route
+        path="/book-maintenance"
+        element={
+          <CustomerRoute>
+            <BookMaintenance />
+          </CustomerRoute>
+        }
+      />
+
       <Route
         path="/maintenance-records"
         element={
@@ -216,6 +248,7 @@ export default function App() {
         }
       />
 
+
       {/* =========================
           SERVICE PROVIDER
       ========================= */}
@@ -255,6 +288,7 @@ export default function App() {
           </ProviderRoute>
         }
       />
+
 
       {/* =========================
           ADMIN
@@ -327,6 +361,7 @@ export default function App() {
         }
       />
 
+
       {/* =========================
           FALLBACK
       ========================= */}
@@ -340,6 +375,7 @@ export default function App() {
           />
         }
       />
+
     </Routes>
   );
 }

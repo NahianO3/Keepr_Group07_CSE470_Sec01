@@ -405,9 +405,9 @@ ROUTES = [
         "role:customer",
     ),
 
-    # =========================================================
+    # =========================
     # Administrator
-    # =========================================================
+    # =========================
 
     Route.get(
         "/admin/users",
@@ -425,25 +425,6 @@ ROUTES = [
         "role:admin",
     ),
 
-    # Module 4 Feature 3 - Verification
-    Route.put(
-        "/admin/users/@id/verify",
-        "AdminController@verify_user",
-    ).middleware(
-        "api_auth",
-        "role:admin",
-    ),
-
-    # Module 4 Feature 3 - Profile management
-    Route.put(
-        "/admin/users/@id/profile",
-        "AdminController@update_user_profile",
-    ).middleware(
-        "api_auth",
-        "role:admin",
-    ),
-
-    # Module 4 Feature 1 - Provider approval
     Route.put(
         "/admin/providers/@id/approve",
         "AdminController@approve_provider",
@@ -452,22 +433,9 @@ ROUTES = [
         "role:admin",
     ),
 
-    # =========================================================
-    # Module 4 Feature 4
-    # Administrator - Booking Management
-    # =========================================================
-
     Route.get(
         "/admin/maintenance-records",
         "AdminController@maintenance_records",
-    ).middleware(
-        "api_auth",
-        "role:admin",
-    ),
-
-    Route.put(
-        "/admin/maintenance-records/@id/status",
-        "AdminController@update_maintenance_status",
     ).middleware(
         "api_auth",
         "role:admin",

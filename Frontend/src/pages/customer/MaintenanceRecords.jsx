@@ -6,6 +6,7 @@ import {
   Wrench,
   Car,
   Refrigerator,
+  CalendarClock,
 } from "lucide-react";
 
 import api from "../../services/api";
@@ -15,6 +16,7 @@ export default function MaintenanceRecords() {
   const [records, setRecords] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [appliances, setAppliances] = useState([]);
+  const [providers, setProviders] = useState([]);
 
   const [assetType, setAssetType] = useState("all");
   const [maintenanceType, setMaintenanceType] =
@@ -36,6 +38,7 @@ export default function MaintenanceRecords() {
     maintenance_type: "DIY",
     service_provider_id: "",
     maintenance_date: "",
+    maintenance_time: "",
     work_performed: "",
     cost: "",
   });
@@ -49,10 +52,12 @@ export default function MaintenanceRecords() {
         recordsResponse,
         vehiclesResponse,
         appliancesResponse,
+        providersResponse,
       ] = await Promise.all([
         api.get("/maintenance-records"),
         api.get("/vehicles"),
         api.get("/appliances"),
+        api.get("/providers"),
       ]);
 
       setRecords(
@@ -65,6 +70,16 @@ export default function MaintenanceRecords() {
 
       setAppliances(
         appliancesResponse.data?.data || []
+      );
+
+      const providerData =
+        providersResponse.data?.data || [];
+
+      setProviders(
+        providerData.filter(
+          (provider) =>
+            provider.account_status === "active"
+        )
       );
     } catch (err) {
       setError(
@@ -92,6 +107,12 @@ export default function MaintenanceRecords() {
         appliance.id === Number(id)
     );
 
+  const getProvider = (id) =>
+    providers.find(
+      (provider) =>
+        provider.id === Number(id)
+    );
+
   const getAssetName = (record) => {
     if (record.vehicle_id) {
       const vehicle = getVehicle(
@@ -108,8 +129,10 @@ export default function MaintenanceRecords() {
         record.appliance_id
       );
 
-      return appliance?.name ||
-        `Appliance #${record.appliance_id}`;
+      return (
+        appliance?.name ||
+        `Appliance #${record.appliance_id}`
+      );
     }
 
     return "Maintenance record";
@@ -125,6 +148,32 @@ export default function MaintenanceRecords() {
     }
 
     return "other";
+  };
+
+  const formatTime = (value) => {
+    if (!value) {
+      return "";
+    }
+
+    const timeValue =
+      String(value).slice(0, 5);
+
+    const [hourString, minute] =
+      timeValue.split(":");
+
+    const hour = Number(hourString);
+
+    if (Number.isNaN(hour)) {
+      return value;
+    }
+
+    const suffix =
+      hour >= 12 ? "PM" : "AM";
+
+    const displayHour =
+      hour % 12 || 12;
+
+    return `${displayHour}:${minute} ${suffix}`;
   };
 
   const filteredRecords = useMemo(() => {
@@ -175,11 +224,18 @@ export default function MaintenanceRecords() {
     setEditingRecord(null);
 
     setForm({
-      asset_type: "vehicle",
-      asset_id: vehicles[0]?.id || "",
+      asset_type:
+        vehicles.length > 0
+          ? "vehicle"
+          : "appliance",
+      asset_id:
+        vehicles.length > 0
+          ? vehicles[0]?.id || ""
+          : appliances[0]?.id || "",
       maintenance_type: "DIY",
       service_provider_id: "",
       maintenance_date: "",
+      maintenance_time: "",
       work_performed: "",
       cost: "",
     });
@@ -210,6 +266,13 @@ export default function MaintenanceRecords() {
       maintenance_date:
         record.maintenance_date || "",
 
+      maintenance_time:
+        record.maintenance_time
+          ? String(
+              record.maintenance_time
+            ).slice(0, 5)
+          : "",
+
       work_performed:
         record.work_performed || "",
 
@@ -230,14 +293,19 @@ export default function MaintenanceRecords() {
     setEditingRecord(null);
   };
 
-  const updateField = (field, value) => {
+  const updateField = (
+    field,
+    value
+  ) => {
     setForm((current) => ({
       ...current,
       [field]: value,
     }));
   };
 
-  const saveRecord = async (event) => {
+  const saveRecord = async (
+    event
+  ) => {
     event.preventDefault();
 
     try {
@@ -256,24 +324,52 @@ export default function MaintenanceRecords() {
         );
       }
 
-      if (!form.work_performed.trim()) {
+      if (
+        !form.maintenance_time
+      ) {
+        throw new Error(
+          "Maintenance time is required."
+        );
+      }
+
+      if (
+        !form.work_performed.trim()
+      ) {
         throw new Error(
           "Work performed is required."
         );
       }
 
       if (
-        form.maintenance_type === "Mechanic" &&
+        form.maintenance_type ===
+          "Mechanic" &&
         !form.service_provider_id
       ) {
         throw new Error(
-          "Service provider ID is required for mechanic maintenance."
+          "Please select a service provider."
+        );
+      }
+
+      const selectedDateTime =
+        new Date(
+          `${form.maintenance_date}T${form.maintenance_time}`
+        );
+
+      if (
+        !editingRecord &&
+        selectedDateTime <= new Date()
+      ) {
+        throw new Error(
+          "Appointment date and time must be in the future."
         );
       }
 
       const payload = {
         maintenance_date:
           form.maintenance_date,
+
+        maintenance_time:
+          form.maintenance_time,
 
         maintenance_type:
           form.maintenance_type,
@@ -287,7 +383,10 @@ export default function MaintenanceRecords() {
             : Number(form.cost),
       };
 
-      if (form.asset_type === "vehicle") {
+      if (
+        form.asset_type ===
+        "vehicle"
+      ) {
         payload.vehicle_id =
           Number(form.asset_id);
       } else {
@@ -330,10 +429,13 @@ export default function MaintenanceRecords() {
     }
   };
 
-  const deleteRecord = async (record) => {
-    const confirmed = window.confirm(
-      "Delete this maintenance record?"
-    );
+  const deleteRecord = async (
+    record
+  ) => {
+    const confirmed =
+      window.confirm(
+        "Delete this maintenance record?"
+      );
 
     if (!confirmed) {
       return;
@@ -360,6 +462,11 @@ export default function MaintenanceRecords() {
       ? vehicles
       : appliances;
 
+  const minimumDate =
+    new Date()
+      .toISOString()
+      .slice(0, 10);
+
   return (
     <div className="dashboard-layout">
       <Sidebar />
@@ -376,8 +483,8 @@ export default function MaintenanceRecords() {
             </h1>
 
             <p>
-              Record DIY work separately from
-              maintenance completed by mechanics.
+              Record DIY work or schedule
+              mechanic maintenance appointments.
             </p>
           </div>
 
@@ -447,9 +554,11 @@ export default function MaintenanceRecords() {
                   All
                 </option>
 
-                {(assetType === "vehicle"
-                  ? vehicles
-                  : appliances
+                {(
+                  assetType ===
+                  "vehicle"
+                    ? vehicles
+                    : appliances
                 ).map((asset) => (
                   <option
                     key={asset.id}
@@ -510,8 +619,9 @@ export default function MaintenanceRecords() {
             </h3>
 
             <p>
-              Record your first DIY or
-              mechanic maintenance service.
+              Record your first DIY service
+              or create a mechanic
+              maintenance appointment.
             </p>
 
             <button
@@ -568,6 +678,9 @@ export default function MaintenanceRecords() {
                           record.status ===
                           "Completed"
                             ? "status-badge status-completed"
+                            : record.status ===
+                              "Rejected"
+                            ? "status-badge status-expired"
                             : "status-badge status-pending"
                         }
                       >
@@ -594,6 +707,30 @@ export default function MaintenanceRecords() {
                         </strong>
                       </div>
 
+                      {record.maintenance_time && (
+                        <div>
+                          <span>
+                            Time
+                          </span>
+
+                          <strong>
+                            <CalendarClock
+                              size={14}
+                              style={{
+                                marginRight:
+                                  "5px",
+                                verticalAlign:
+                                  "middle",
+                              }}
+                            />
+
+                            {formatTime(
+                              record.maintenance_time
+                            )}
+                          </strong>
+                        </div>
+                      )}
+
                       <div>
                         <span>
                           Cost
@@ -615,7 +752,11 @@ export default function MaintenanceRecords() {
 
                         <strong>
                           {record.service_provider_id
-                            ? `Provider #${record.service_provider_id}`
+                            ? getProvider(
+                                record.service_provider_id
+                              )
+                                ?.full_name ||
+                              `Provider #${record.service_provider_id}`
                             : "Self-performed"}
                         </strong>
                       </div>
@@ -637,7 +778,9 @@ export default function MaintenanceRecords() {
                       type="button"
                       className="delete-action"
                       onClick={() =>
-                        deleteRecord(record)
+                        deleteRecord(
+                          record
+                        )
                       }
                       title="Delete"
                     >
@@ -664,7 +807,7 @@ export default function MaintenanceRecords() {
                   <h2>
                     {editingRecord
                       ? "Edit maintenance"
-                      : "Record maintenance"}
+                      : "Add maintenance"}
                   </h2>
                 </div>
 
@@ -695,14 +838,24 @@ export default function MaintenanceRecords() {
                         form.asset_type
                       }
                       onChange={(event) => {
+                        const nextType =
+                          event.target.value;
+
+                        const options =
+                          nextType ===
+                          "vehicle"
+                            ? vehicles
+                            : appliances;
+
                         updateField(
                           "asset_type",
-                          event.target.value
+                          nextType
                         );
 
                         updateField(
                           "asset_id",
-                          ""
+                          options[0]
+                            ?.id || ""
                         );
                       }}
                       disabled={saving}
@@ -802,9 +955,37 @@ export default function MaintenanceRecords() {
                       value={
                         form.maintenance_date
                       }
+                      min={
+                        !editingRecord
+                          ? minimumDate
+                          : undefined
+                      }
                       onChange={(event) =>
                         updateField(
                           "maintenance_date",
+                          event.target.value
+                        )
+                      }
+                      disabled={saving}
+                      required
+                    />
+                  </div>
+
+                  {/* TIME */}
+
+                  <div className="form-field">
+                    <label>
+                      Maintenance time
+                    </label>
+
+                    <input
+                      type="time"
+                      value={
+                        form.maintenance_time
+                      }
+                      onChange={(event) =>
+                        updateField(
+                          "maintenance_time",
                           event.target.value
                         )
                       }
@@ -819,12 +1000,10 @@ export default function MaintenanceRecords() {
                     "Mechanic" && (
                     <div className="form-field form-field-full">
                       <label>
-                        Service provider ID
+                        Preferred service provider
                       </label>
 
-                      <input
-                        type="number"
-                        min="1"
+                      <select
                         value={
                           form.service_provider_id
                         }
@@ -834,15 +1013,48 @@ export default function MaintenanceRecords() {
                             event.target.value
                           )
                         }
-                        disabled={saving}
+                        disabled={
+                          saving ||
+                          providers.length ===
+                            0
+                        }
                         required
-                        placeholder="Enter service provider ID"
-                      />
+                      >
+                        <option value="">
+                          Select a service provider
+                        </option>
+
+                        {providers.map(
+                          (provider) => (
+                            <option
+                              key={provider.id}
+                              value={provider.id}
+                            >
+                              {provider.full_name ||
+                                provider.email}
+
+                              {provider.service_category
+                                ? ` — ${provider.service_category}`
+                                : ""}
+                            </option>
+                          )
+                        )}
+                      </select>
 
                       <small className="field-help">
-                        The selected user must have
-                        the service_provider role.
+                        Only approved and active
+                        service providers are
+                        available.
                       </small>
+
+                      {providers.length ===
+                        0 && (
+                        <small className="field-help">
+                          No approved service
+                          providers are currently
+                          available.
+                        </small>
+                      )}
                     </div>
                   )}
 
@@ -850,7 +1062,7 @@ export default function MaintenanceRecords() {
 
                   <div className="form-field form-field-full">
                     <label>
-                      Work performed
+                      Work performed / request
                     </label>
 
                     <textarea
@@ -866,7 +1078,12 @@ export default function MaintenanceRecords() {
                       }
                       disabled={saving}
                       required
-                      placeholder="Describe the maintenance work performed"
+                      placeholder={
+                        form.maintenance_type ===
+                        "Mechanic"
+                          ? "Describe the maintenance service you are requesting"
+                          : "Describe the maintenance work performed"
+                      }
                     />
                   </div>
 
@@ -881,7 +1098,9 @@ export default function MaintenanceRecords() {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={form.cost}
+                      value={
+                        form.cost
+                      }
                       onChange={(event) =>
                         updateField(
                           "cost",
@@ -891,6 +1110,15 @@ export default function MaintenanceRecords() {
                       disabled={saving}
                       placeholder="0"
                     />
+
+                    {form.maintenance_type ===
+                      "Mechanic" && (
+                      <small className="field-help">
+                        Leave as 0 when requesting
+                        a new appointment if the
+                        final price is not known yet.
+                      </small>
+                    )}
                   </div>
                 </div>
 
@@ -904,7 +1132,9 @@ export default function MaintenanceRecords() {
                   <button
                     type="button"
                     className="secondary-button"
-                    onClick={closeForm}
+                    onClick={
+                      closeForm
+                    }
                     disabled={saving}
                   >
                     Cancel
@@ -919,6 +1149,9 @@ export default function MaintenanceRecords() {
                       ? "Saving..."
                       : editingRecord
                       ? "Save changes"
+                      : form.maintenance_type ===
+                        "Mechanic"
+                      ? "Request appointment"
                       : "Record maintenance"}
                   </button>
                 </div>

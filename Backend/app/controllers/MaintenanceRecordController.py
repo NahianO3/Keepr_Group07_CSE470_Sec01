@@ -1,6 +1,6 @@
 """Maintenance Record Controller."""
 
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 
 from masonite.controllers import Controller
 from masonite.request import Request
@@ -29,6 +29,14 @@ class MaintenanceRecordController(Controller):
             else:
                 maintenance_date = str(maintenance_date)
 
+        maintenance_time = getattr(record, "maintenance_time", None)
+
+        if maintenance_time:
+            if hasattr(maintenance_time, "isoformat"):
+                maintenance_time = maintenance_time.isoformat()
+            else:
+                maintenance_time = str(maintenance_time)
+
         created_at = record.created_at
 
         if created_at:
@@ -51,6 +59,7 @@ class MaintenanceRecordController(Controller):
             "vehicle_id": record.vehicle_id,
             "service_provider_id": record.service_provider_id,
             "maintenance_date": maintenance_date,
+            "maintenance_time": maintenance_time,
             "maintenance_type": record.maintenance_type,
             "work_performed": record.work_performed,
             "cost": record.cost,
@@ -87,7 +96,6 @@ class MaintenanceRecordController(Controller):
         if not customer:
             return False
 
-        # Appliance maintenance record
         if record.appliance_id is not None:
             appliance = Appliance.find(record.appliance_id)
 
@@ -99,7 +107,6 @@ class MaintenanceRecordController(Controller):
                 appliance
             )
 
-        # Vehicle maintenance record
         if record.vehicle_id is not None:
             vehicle = Vehicle.find(record.vehicle_id)
 
@@ -163,10 +170,6 @@ class MaintenanceRecordController(Controller):
         appliance_id = request.input("appliance_id")
         vehicle_id = request.input("vehicle_id")
 
-        # -----------------------------------------------------
-        # Filter by appliance
-        # -----------------------------------------------------
-
         if appliance_id:
 
             appliance = Appliance.find(appliance_id)
@@ -194,10 +197,6 @@ class MaintenanceRecordController(Controller):
                 appliance_id
             ).get()
 
-        # -----------------------------------------------------
-        # Filter by vehicle
-        # -----------------------------------------------------
-
         elif vehicle_id:
 
             vehicle = Vehicle.find(vehicle_id)
@@ -224,10 +223,6 @@ class MaintenanceRecordController(Controller):
                 "vehicle_id",
                 vehicle_id
             ).get()
-
-        # -----------------------------------------------------
-        # All customer records
-        # -----------------------------------------------------
 
         else:
 
@@ -288,9 +283,14 @@ class MaintenanceRecordController(Controller):
             "data": self.record_to_dict(record)
         }
 
+    # =========================================================
+    # CUSTOMER - CREATE
+    # Module 3 Feature 2
+    # =========================================================
+
     def store(self, request: Request):
         """
-        Create a maintenance record.
+        Create a maintenance record or maintenance appointment.
 
         DIY:
             service_provider_id = NULL
@@ -299,6 +299,9 @@ class MaintenanceRecordController(Controller):
         Mechanic:
             service_provider_id is required
             status defaults to Pending
+
+        Appointment:
+            maintenance_date and maintenance_time are required.
 
         Exactly one asset is required:
             appliance_id OR vehicle_id
@@ -380,6 +383,10 @@ class MaintenanceRecordController(Controller):
             "maintenance_date"
         )
 
+        maintenance_time = request.input(
+            "maintenance_time"
+        )
+
         maintenance_type = request.input(
             "maintenance_type"
         )
@@ -396,6 +403,12 @@ class MaintenanceRecordController(Controller):
             return {
                 "success": False,
                 "message": "maintenance_date is required."
+            }, 400
+
+        if not maintenance_time:
+            return {
+                "success": False,
+                "message": "maintenance_time is required."
             }, 400
 
         if not maintenance_type:
@@ -435,6 +448,20 @@ class MaintenanceRecordController(Controller):
                 "message": (
                     "Invalid maintenance_date format. "
                     "Use YYYY-MM-DD."
+                )
+            }, 400
+
+        try:
+            maintenance_time = time.fromisoformat(
+                maintenance_time
+            )
+
+        except (ValueError, TypeError):
+            return {
+                "success": False,
+                "message": (
+                    "Invalid maintenance_time format. "
+                    "Use HH:MM."
                 )
             }, 400
 
@@ -502,15 +529,74 @@ class MaintenanceRecordController(Controller):
                     )
                 }, 400
 
+            if service_provider.account_status != "active":
+                return {
+                    "success": False,
+                    "message": (
+                        "Selected service provider is not "
+                        "approved and active."
+                    )
+                }, 400
+
             record_status = (
                 status or "Pending"
             )
+
+            # Prevent two active bookings for the same
+            # service provider at exactly the same date/time.
+            existing_records = MaintenanceRecord.where(
+                "service_provider_id",
+                service_provider_id
+            ).get()
+
+            for existing in existing_records:
+
+                if existing.maintenance_date != maintenance_date:
+                    continue
+
+                existing_time = getattr(
+                    existing,
+                    "maintenance_time",
+                    None
+                )
+
+                if not existing_time:
+                    continue
+
+                if isinstance(existing_time, str):
+
+                    try:
+                        existing_time = time.fromisoformat(
+                            existing_time
+                        )
+
+                    except (ValueError, TypeError):
+                        continue
+
+                if (
+                    existing_time == maintenance_time
+                    and existing.status in [
+                        "Pending",
+                        "Accepted",
+                        "In Progress",
+                        "Rescheduled",
+                    ]
+                ):
+                    return {
+                        "success": False,
+                        "message": (
+                            "The selected service provider already "
+                            "has a maintenance booking at that "
+                            "date and time."
+                        )
+                    }, 409
 
         record = MaintenanceRecord.create({
             "appliance_id": appliance_id or None,
             "vehicle_id": vehicle_id or None,
             "service_provider_id": service_provider_id,
             "maintenance_date": maintenance_date,
+            "maintenance_time": maintenance_time,
             "maintenance_type": maintenance_type,
             "work_performed": work_performed,
             "cost": cost,
@@ -522,10 +608,14 @@ class MaintenanceRecordController(Controller):
             "message": (
                 "DIY maintenance record created successfully."
                 if maintenance_type == "DIY"
-                else "Mechanic maintenance request created successfully."
+                else "Maintenance appointment requested successfully."
             ),
             "data": self.record_to_dict(record)
         }, 201
+
+    # =========================================================
+    # CUSTOMER - UPDATE
+    # =========================================================
 
     def update(self, request: Request):
         """Update a customer-owned maintenance record."""
@@ -570,6 +660,27 @@ class MaintenanceRecordController(Controller):
                     "message": (
                         "Invalid maintenance_date format. "
                         "Use YYYY-MM-DD."
+                    )
+                }, 400
+
+        maintenance_time = request.input(
+            "maintenance_time",
+            getattr(record, "maintenance_time", None)
+        )
+
+        if isinstance(maintenance_time, str):
+
+            try:
+                maintenance_time = time.fromisoformat(
+                    maintenance_time
+                )
+
+            except (ValueError, TypeError):
+                return {
+                    "success": False,
+                    "message": (
+                        "Invalid maintenance_time format. "
+                        "Use HH:MM."
                     )
                 }, 400
 
@@ -661,7 +772,17 @@ class MaintenanceRecordController(Controller):
                     )
                 }, 400
 
+            if service_provider.account_status != "active":
+                return {
+                    "success": False,
+                    "message": (
+                        "Selected service provider is not "
+                        "approved and active."
+                    )
+                }, 400
+
         record.maintenance_date = maintenance_date
+        record.maintenance_time = maintenance_time
         record.maintenance_type = maintenance_type
         record.work_performed = work_performed
         record.cost = cost
@@ -671,9 +792,15 @@ class MaintenanceRecordController(Controller):
 
         return {
             "success": True,
-            "message": "Maintenance record updated successfully.",
+            "message": (
+                "Maintenance record updated successfully."
+            ),
             "data": self.record_to_dict(record)
         }
+
+    # =========================================================
+    # CUSTOMER - DELETE
+    # =========================================================
 
     def destroy(self, request: Request):
         """Delete a customer-owned maintenance record."""
@@ -704,7 +831,9 @@ class MaintenanceRecordController(Controller):
 
         return {
             "success": True,
-            "message": "Maintenance record deleted successfully."
+            "message": (
+                "Maintenance record deleted successfully."
+            )
         }
 
     # =========================================================
@@ -960,7 +1089,9 @@ class MaintenanceRecordController(Controller):
         if not new_date:
             return {
                 "success": False,
-                "message": "maintenance_date is required."
+                "message": (
+                    "maintenance_date is required."
+                )
             }, 400
 
         try:
@@ -977,7 +1108,33 @@ class MaintenanceRecordController(Controller):
                 )
             }, 400
 
+        new_time = request.input(
+            "maintenance_time",
+            getattr(
+                record,
+                "maintenance_time",
+                None
+            )
+        )
+
+        if isinstance(new_time, str):
+
+            try:
+                new_time = time.fromisoformat(
+                    new_time
+                )
+
+            except (ValueError, TypeError):
+                return {
+                    "success": False,
+                    "message": (
+                        "Invalid maintenance_time format. "
+                        "Use HH:MM."
+                    )
+                }, 400
+
         record.maintenance_date = new_date
+        record.maintenance_time = new_time
         record.status = "Rescheduled"
 
         record.save()
@@ -1054,7 +1211,9 @@ class MaintenanceRecordController(Controller):
         if not work_performed:
             return {
                 "success": False,
-                "message": "work_performed is required."
+                "message": (
+                    "work_performed is required."
+                )
             }, 400
 
         record.status = status
@@ -1079,7 +1238,7 @@ class MaintenanceRecordController(Controller):
 
         For a vehicle:
             Advance its recurring vehicle schedule,
-            including the time and mileage thresholds.
+            including mileage and time thresholds.
         """
 
         record_id = request.param("id")
@@ -1133,20 +1292,13 @@ class MaintenanceRecordController(Controller):
             except (ValueError, TypeError):
                 return {
                     "success": False,
-                    "message": "Invalid maintenance date."
+                    "message": (
+                        "Invalid maintenance date."
+                    )
                 }, 400
-
-        # -----------------------------------------------------
-        # Complete record
-        # -----------------------------------------------------
 
         record.status = "Completed"
         record.save()
-
-        # -----------------------------------------------------
-        # Feature 6:
-        # update provider completed-service count
-        # -----------------------------------------------------
 
         provider = request.user()
 
