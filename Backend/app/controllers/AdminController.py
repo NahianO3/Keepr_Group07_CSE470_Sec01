@@ -67,6 +67,14 @@ class AdminController(Controller):
                 "message": "User is not a service provider.",
             }, 400
 
+        if user.account_status != "pending":
+            return {
+                "success": False,
+                "message": (
+                    "Only pending service providers can be approved."
+                ),
+            }, 400
+
         user.account_status = "active"
         user.save()
 
@@ -87,7 +95,10 @@ class AdminController(Controller):
                     "service_provider_id": record.service_provider_id,
                     "maintenance_date": (
                         record.maintenance_date.isoformat()
-                        if hasattr(record.maintenance_date, "isoformat")
+                        if hasattr(
+                            record.maintenance_date,
+                            "isoformat"
+                        )
                         else str(record.maintenance_date)
                     ),
                     "maintenance_type": record.maintenance_type,

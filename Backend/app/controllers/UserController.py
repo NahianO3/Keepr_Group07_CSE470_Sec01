@@ -40,6 +40,12 @@ class UserController(Controller):
 
         hashed_password = Hash.make(password)
 
+        account_status = (
+            "pending"
+            if role == "service_provider"
+            else "active"
+        )
+
         user = User.create({
             "full_name": full_name,
             "email": email,
@@ -47,12 +53,19 @@ class UserController(Controller):
             "phone": phone,
             "address": address,
             "role": role,
-            "account_status": "active",
+            "account_status": account_status,
         })
+
+        message = (
+            "Service provider account created successfully. "
+            "Your account is awaiting administrator approval."
+            if role == "service_provider"
+            else "Account created successfully."
+        )
 
         return {
             "success": True,
-            "message": "Account created successfully.",
+            "message": message,
             "data": {
                 "id": user.id,
                 "full_name": user.full_name,
@@ -88,6 +101,15 @@ class UserController(Controller):
                 "success": False,
                 "message": "Invalid email or password.",
             }, 401
+
+        if user.account_status == "pending":
+            return {
+                "success": False,
+                "message": (
+                    "Your service provider account is awaiting "
+                    "administrator approval."
+                ),
+            }, 403
 
         if user.account_status == "suspended":
             return {

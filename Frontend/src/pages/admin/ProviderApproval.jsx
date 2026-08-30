@@ -61,7 +61,7 @@ export default function ProviderApproval() {
 
     return providers.filter((provider) => {
       const pending =
-        provider.account_status !== "active";
+        provider.account_status === "pending";
 
       const searchable = [
         provider.full_name,
@@ -153,8 +153,7 @@ export default function ProviderApproval() {
           <div className="dashboard-loading">
             Loading approval queue...
           </div>
-        ) : pendingProviders.length ===
-          0 ? (
+        ) : pendingProviders.length === 0 ? (
           <div className="empty-card">
             <CheckCircle2 size={30} />
 
